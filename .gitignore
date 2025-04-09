@@ -1,0 +1,21 @@
+
+# Virtual Environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Logs / Temporary Files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Editor Specific
+.vscode/
+.idea/
+
