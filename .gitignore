@@ -19,3 +19,7 @@ venv.bak/
 .vscode/
 .idea/
 
+# Other Stuff
+__pycache__/
+*.py[cod]
+*$py.class
