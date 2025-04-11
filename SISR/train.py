@@ -1,20 +1,23 @@
 
 import os
 
+import numpy as np
+import torch
+import torch.nn as nn
+
 from utils import base_utils
-from model import base_model
+from model import models
 from data import data_loader
 
 
 def main():
     print(f"Running {os.path.basename(__file__)}")
-    base_utils.base_utils_test()
 
-    model = base_model.BaseModel()
-    print(model.call_test())
+    channels = 3
+    model = models.BaseModel(channels)
 
-    data = data_loader.load_data()
-    print(data)
+    for module in model.get_modules():
+        print(module)
 
 
 if __name__ == "__main__":
