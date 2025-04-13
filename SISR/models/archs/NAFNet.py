@@ -93,10 +93,12 @@ class NAFNet(nn.Module):
 
 
 class NAFNetBlock(nn.Module):
-    def __init__(self, c_in, dw_expand = 1, ffn_expand = 2, dropout = 0.0):
+    def __init__(self, c_in, dw_expand = 2, ffn_expand = 2, dropout = 0.0):
         super().__init__()
 
         # First stage of block
+        self.norm_1 = LayerNorm2d(c_in)
+        
         dw_channels = c_in * dw_expand
         self.conv_1 = nn.Conv2d(
             in_channels = c_in, 
@@ -111,16 +113,30 @@ class NAFNetBlock(nn.Module):
             padding = 1
         )
         self.conv_3 = nn.Conv2d(
-            in_channels = dw_channels, 
+            in_channels = dw_channels // 2, 
             out_channels = c_in,
             kernel_size = 1,
             padding = 0
+        )
+
+
+        self.simple_gate = SimpleGate()
+
+        self.sca = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(
+                in_channels = dw_channels // 2, 
+                out_channels = dw_channels // 2, 
+                kernel_size=1, 
+            ),
         )
 
         # First dropout
         self.dropout_1 = nn.Dropout(dropout) if dropout > 0.0 else nn.Identity()
 
         # Second stage of block
+        self.norm_2 = LayerNorm2d(c_in)
+        
         ffn_channels = c_in * ffn_expand 
         self.conv_4 = nn.Conv2d(
             in_channels = c_in, 
@@ -129,7 +145,7 @@ class NAFNetBlock(nn.Module):
             padding = 0
         )
         self.conv_5 = nn.Conv2d(
-            in_channels = ffn_channels, 
+            in_channels = ffn_channels // 2, 
             out_channels = c_in,
             kernel_size = 1,
             padding = 0
@@ -143,22 +159,42 @@ class NAFNetBlock(nn.Module):
         self.gamma = nn.Parameter(torch.zeros((1, c_in, 1, 1)), requires_grad=True)
 
     def forward(self, input):
-        x = self.conv_1(input)
+        x = self.norm_1(input)
+        x = self.conv_1(x)
         x = self.conv_2(x)
-        x = nn.ReLU()(x)
+        x = self.simple_gate(x)
+        x = x * self.sca(x)
         x = self.conv_3(x)
 
         x = self.dropout_1(x)
 
         y = input + x * self.beta
 
-        x = self.conv_4(y)
-        x = nn.ReLU()(x)
+        x = self.norm_2(y)
+        x = self.conv_4(x)
+        x = self.simple_gate(x)
         x = self.conv_5(x)
 
         x = self.dropout_2(x)
 
         return y + x * self.gamma
 
+
+class LayerNorm2d(nn.Module):
+    def __init__(self, channels, eps=1e-6):
+        super().__init__()
+        self.layer_norm = nn.LayerNorm(channels, eps=eps)
+
+    def forward(self, x):
+        x = x.permute(0, 2, 3, 1)
+        x = self.layer_norm(x)
+        x = x.permute(0, 3, 1, 2)
+        return x
+
+
+class SimpleGate(nn.Module):
+    def forward(self, x):
+        x1, x2 = x.chunk(2, dim=1)
+        return x1 * x2
 
 

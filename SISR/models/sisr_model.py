@@ -24,7 +24,7 @@ class SISRModel():
 
 
     def run(self, input):
-        if input.shape[-3] != self.input_channels:
+        if input.shape[-3] != self.c_in:
             return input
         output = self.network(input)
         return output
