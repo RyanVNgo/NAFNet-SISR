@@ -6,18 +6,24 @@ import torch
 import torch.nn as nn
 
 from utils import base_utils
-from model import models
+import models
 from data import data_loader
 
 
 def main():
     print(f"Running {os.path.basename(__file__)}")
 
-    channels = 3
-    model = models.BaseModel(channels)
+    network_type = 'NAFNet'
+    model = models.SISRModel(net_type = network_type, c_in = 3)
 
-    for module in model.get_modules():
-        print(module)
+    sisr_models = []
+    for net_type in models.sisr_network_types():
+        sisr_models.append(models.SISRModel(net_type, c_in = 3))
+
+    for idx, model in enumerate(sisr_models):
+        print(f'Model {idx}:')
+        print(f'    Network type: {model.network_type()}')
+        print(f'    Channel depth: {model.input_channel_depth()}\n')
 
 
 if __name__ == "__main__":
