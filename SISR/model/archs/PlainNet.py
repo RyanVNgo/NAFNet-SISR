@@ -14,9 +14,10 @@ class PlainNet(nn.Module):
         for _ in range(depth - 1):
             self.encoding_blocks.append(
                 PlainNetBlock(
-                    curr_channels,
-                    dw_expand,
-                    ffn_expand
+                    c_in = curr_channels,
+                    dw_expand = dw_expand,
+                    ffn_expand = ffn_expand,
+                    dropout = dropout
                 )
             )
             self.downs.append(
@@ -33,9 +34,10 @@ class PlainNet(nn.Module):
         self.middle_blocks = nn.ModuleList()
         self.middle_blocks.append(
             PlainNetBlock(
-                curr_channels,
-                dw_expand,
-                ffn_expand
+                c_in = curr_channels,
+                dw_expand = dw_expand,
+                ffn_expand = ffn_expand,
+                dropout = dropout
             )
         )
 
@@ -56,33 +58,41 @@ class PlainNet(nn.Module):
             curr_channels = curr_channels // 2
             self.decoding_blocks.append(
                 PlainNetBlock(
-                    curr_channels,
-                    dw_expand,
-                    ffn_expand
+                    c_in = curr_channels,
+                    dw_expand = dw_expand,
+                    ffn_expand = ffn_expand,
+                    dropout = dropout
                 )
             )
 
+        # Appended Upscaling Block
+        self.upscale_block = nn.Sequential(
+            nn.Conv2d(curr_channels, curr_channels * 4, kernel_size = 3, padding = 1),
+            nn.PixelShuffle(2)
+        )
+
 
     def forward(self, input):
+        enc_outs = []
+
         for encoder, down in zip(self.encoding_blocks, self.downs):
             input = encoder(input)
+            enc_outs.append(input)
             input = down(input)
 
         for middle_block in self.middle_blocks:
             input = middle_block(input)
 
-        for decoder, up in zip(self.decoding_blocks, self.ups):
+        for decoder, up, enc_skip in zip(self.decoding_blocks, self.ups, enc_outs[::-1]):
             input = up(input)
+            input = input + enc_skip
             input = decoder(input)
 
+        input = self.upscale_block(input)
         return input 
 
 
-
 class PlainNetBlock(nn.Module):
-    # Not sure what dw and ffn mean. They're like the first
-    # and second stage channel multipliers I just don't get the naming.
-    # - Ryan V. Ngo (its probably in the paper, idk)
     def __init__(self, c_in, dw_expand = 1, ffn_expand = 2, dropout = 0.0):
         super().__init__()
 
