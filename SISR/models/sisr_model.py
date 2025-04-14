@@ -2,6 +2,8 @@
 import os
 from os import path
 
+import torch
+
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
@@ -10,7 +12,7 @@ from .archs.NAFNet import NAFNet
 class SISRModel():
     network = None
 
-    def __init__(self, net_type = 'PlainNet', c_in = 3):
+    def __init__(self, net_type = 'PlainNet', c_in = 3, device = None):
         self.c_in = c_in
         match net_type:
             case 'PlainNet':
@@ -22,11 +24,26 @@ class SISRModel():
             case _:
                 self.network = PlainNet(c_in)
 
+        self.device = torch.device('cpu')
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+        else:
+            try:
+                self.device = torch.device(device)
+            except:
+                pass
 
-    def run(self, input):
+        self.network.to(self.device)
+
+
+    def predict(self, input):
         if input.shape[-3] != self.c_in:
             return input
-        output = self.network(input)
+
+        self.network.eval()
+        with torch.no_grad():
+            output = self.network(input).cpu()
         return output
 
 
@@ -37,13 +54,16 @@ class SISRModel():
         return modules
 
 
+    def curr_device(self):
+        return self.device
+
+
     def network_type(self):
         return self.network.__class__.__name__
 
 
     def input_channel_depth(self):
         return self.c_in
-
 
 
 def sisr_network_types():
