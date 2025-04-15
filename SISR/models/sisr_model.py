@@ -24,27 +24,36 @@ class SISRModel():
             case _:
                 self.network = PlainNet(c_in)
 
-        self.device = torch.device('cpu')
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-        else:
+        if device is not None:
             try:
                 self.device = torch.device(device)
             except:
                 pass
+        else:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            else:
+                self.device = torch.device('cpu')
 
         self.network.to(self.device)
+
+
+    def set_eval(self):
+        self.network.eval()
+
+
+    def set_train(self):
+        self.network.train(True)
 
 
     def predict(self, input):
         if input.shape[-3] != self.c_in:
             return input
+        return self.network(input)
 
-        self.network.eval()
-        with torch.no_grad():
-            output = self.network(input).cpu()
-        return output
+    
+    def get_parameters():
+        return self.network.parameters()
 
 
     def get_modules(self):
@@ -64,6 +73,14 @@ class SISRModel():
 
     def input_channel_depth(self):
         return self.c_in
+
+
+    def save_model(self, path):
+        torch.save(self.network.state_dict(), path)
+
+
+    def load_model(self, path):
+        model.load_state_dict(torch.load(path, weights_only=True))
 
 
 def sisr_network_types():
