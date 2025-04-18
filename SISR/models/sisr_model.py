@@ -52,7 +52,7 @@ class SISRModel():
         return self.network(input)
 
     
-    def get_parameters():
+    def get_parameters(self):
         return self.network.parameters()
 
 
@@ -80,7 +80,7 @@ class SISRModel():
 
 
     def load_model(self, path):
-        model.load_state_dict(torch.load(path, weights_only=True))
+        self.network.load_state_dict(torch.load(path, weights_only=True))
 
 
 def sisr_network_types():
