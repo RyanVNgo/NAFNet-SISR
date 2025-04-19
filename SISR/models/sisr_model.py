@@ -12,7 +12,7 @@ from .archs.NAFNet import NAFNet
 class SISRModel():
     network = None
 
-    def __init__(self, net_type = 'PlainNet', c_in = 3, device = None):
+    def __init__(self, net_type=None, c_in=3, device=None):
         self.c_in = c_in
         match net_type:
             case 'PlainNet':
@@ -37,24 +37,19 @@ class SISRModel():
 
         self.network.to(self.device)
 
-
     def set_eval(self):
         self.network.eval()
 
-
     def set_train(self):
         self.network.train(True)
-
 
     def predict(self, input):
         if input.shape[-3] != self.c_in:
             return input
         return self.network(input)
-
     
     def get_parameters(self):
         return self.network.parameters()
-
 
     def get_modules(self):
         modules = []
@@ -62,22 +57,17 @@ class SISRModel():
             modules.append(module)
         return modules
 
-
     def curr_device(self):
         return self.device
-
 
     def network_type(self):
         return self.network.__class__.__name__
 
-
     def input_channel_depth(self):
         return self.c_in
 
-
     def save_model(self, path):
         torch.save(self.network.state_dict(), path)
-
 
     def load_model(self, path):
         self.network.load_state_dict(torch.load(path, weights_only=True))

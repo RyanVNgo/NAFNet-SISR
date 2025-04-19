@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class NAFNet(nn.Module):
-    def __init__(self, c_in, depth = 3, dw_expand = 2, ffn_expand = 2, dropout = 0.0):
+    def __init__(self, c_in, depth=3, dw_expand=2, ffn_expand=2, dropout=0.0):
         super().__init__()
         curr_channels = c_in
 
@@ -71,7 +71,6 @@ class NAFNet(nn.Module):
             nn.PixelShuffle(2)
         )
 
-
     def forward(self, input):
         enc_outs = []
 
@@ -93,7 +92,7 @@ class NAFNet(nn.Module):
 
 
 class NAFNetBlock(nn.Module):
-    def __init__(self, c_in, dw_expand = 2, ffn_expand = 2, dropout = 0.0):
+    def __init__(self, c_in, dw_expand=2, ffn_expand=2, dropout=0.0):
         super().__init__()
 
         # First stage of block
@@ -118,7 +117,6 @@ class NAFNetBlock(nn.Module):
             kernel_size = 1,
             padding = 0
         )
-
 
         self.simple_gate = SimpleGate()
 
