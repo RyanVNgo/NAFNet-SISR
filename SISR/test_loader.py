@@ -1,5 +1,5 @@
 import os
-from data import get_loader
+from data.data_loader import get_loader
 
 # ✅ Set to your generated LR folder
 data_path = os.getenv("DATA_ROOT", "E:/Datasets/DIV2K_train_LR_X2")
