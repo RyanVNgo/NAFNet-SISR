@@ -14,15 +14,19 @@ class SISRModel():
 
     def __init__(self, net_type=None, c_in=3, device=None):
         self.c_in = c_in
+
+        enc_blk_nums = [2, 4, 8]
+        dec_blk_nums = [8, 4, 2]
+
         match net_type:
             case 'PlainNet':
-                self.network = PlainNet(c_in)
+                self.network = PlainNet(c_in, enc_blk_nums = enc_blk_nums, dec_blk_nums = dec_blk_nums)
             case 'Baseline':
-                self.network = Baseline(c_in)
+                self.network = Baseline(c_in, enc_blk_nums = enc_blk_nums, dec_blk_nums = dec_blk_nums)
             case 'NAFNet':
-                self.network = NAFNet(c_in)
+                self.network = NAFNet(c_in, enc_blk_nums = enc_blk_nums, dec_blk_nums = dec_blk_nums)
             case _:
-                self.network = PlainNet(c_in)
+                self.network = PlainNet(c_in, enc_blk_nums = enc_blk_nums, dec_blk_nums = dec_blk_nums)
 
         if device is not None:
             try:

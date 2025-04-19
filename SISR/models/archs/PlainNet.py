@@ -4,20 +4,25 @@ import torch.nn as nn
 
 
 class PlainNet(nn.Module):
-    def __init__(self, c_in, depth=3, dw_expand=1, ffn_expand=2, dropout=0.0):
+    def __init__(self, c_in=3, width=16, mid_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
-        curr_channels = c_in
+
+        self.intro = nn.Conv2d(
+            in_channels = c_in,
+            out_channels = width,
+            kernel_size = 3,
+            padding = 1
+        )
+
+        curr_channels = width
 
         # Construct the encoding path
         self.encoding_blocks = nn.ModuleList()
         self.downs = nn.ModuleList()
-        for _ in range(depth - 1):
+        for num in enc_blk_nums:
             self.encoding_blocks.append(
-                PlainNetBlock(
-                    c_in = curr_channels,
-                    dw_expand = dw_expand,
-                    ffn_expand = ffn_expand,
-                    dropout = dropout
+                nn.Sequential(
+                    *[PlainNetBlock(c_in = curr_channels) for _ in range(num)]
                 )
             )
             self.downs.append(
@@ -33,18 +38,15 @@ class PlainNet(nn.Module):
         # Construct the middle path
         self.middle_blocks = nn.ModuleList()
         self.middle_blocks.append(
-            PlainNetBlock(
-                c_in = curr_channels,
-                dw_expand = dw_expand,
-                ffn_expand = ffn_expand,
-                dropout = dropout
+            nn.Sequential(
+                *[PlainNetBlock(c_in = curr_channels) for _ in range(mid_blk_num)]
             )
         )
 
         # Construct the decoding path
         self.decoding_blocks = nn.ModuleList()
         self.ups = nn.ModuleList()
-        for _ in range(depth - 1):
+        for num in dec_blk_nums:
             self.ups.append(
                 nn.Sequential(
                     nn.Conv2d(
@@ -57,22 +59,28 @@ class PlainNet(nn.Module):
             )
             curr_channels = curr_channels // 2
             self.decoding_blocks.append(
-                PlainNetBlock(
-                    c_in = curr_channels,
-                    dw_expand = dw_expand,
-                    ffn_expand = ffn_expand,
-                    dropout = dropout
+                nn.Sequential(
+                    *[PlainNetBlock(c_in = curr_channels) for _ in range(num)]
                 )
             )
 
+        self.ending = nn.Conv2d(
+            in_channels = width,
+            out_channels = c_in,
+            kernel_size = 3,
+            padding = 1
+        )
+
         # Appended Upscaling Block
         self.upscale_block = nn.Sequential(
-            nn.Conv2d(curr_channels, curr_channels * 4, kernel_size = 3, padding = 1),
+            nn.Conv2d(c_in, c_in * 4, kernel_size = 3, padding = 1),
             nn.PixelShuffle(2)
         )
 
     def forward(self, input):
         enc_outs = []
+
+        input = self.intro(input)
 
         for encoder, down in zip(self.encoding_blocks, self.downs):
             input = encoder(input)
@@ -86,6 +94,8 @@ class PlainNet(nn.Module):
             input = up(input)
             input = input + enc_skip
             input = decoder(input)
+
+        input = self.ending(input)
 
         input = self.upscale_block(input)
         return input 
