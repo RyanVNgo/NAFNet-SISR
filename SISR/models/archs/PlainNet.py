@@ -117,7 +117,8 @@ class PlainNetBlock(nn.Module):
             in_channels = dw_channels, 
             out_channels = dw_channels,
             kernel_size = 3,
-            padding = 1
+            padding = 1,
+            groups = dw_channels
         )
         self.conv_3 = nn.Conv2d(
             in_channels = dw_channels, 
