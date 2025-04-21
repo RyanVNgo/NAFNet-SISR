@@ -4,86 +4,30 @@ from os import path
 
 import torch
 
-from .archs.PlainNet import PlainNet
-from .archs.Baseline import Baseline
-from .archs.NAFNet import NAFNet
-
-
 class SISRModel():
-    network = None
 
-    def __init__(self, net_type=None, c_in=3, device=None):
-        self.c_in = c_in
-
-        width = 16
-        enc_blk_nums = [2, 4, 8]
-        mid_blk_num = 1
-        dec_blk_nums = [8, 4, 2]
-
-        match net_type:
-            case 'PlainNet':
-                self.network = PlainNet(
-                    c_in, 
-                    width = width,
-                    enc_blk_nums = enc_blk_nums, 
-                    mid_blk_num = mid_blk_num,
-                    dec_blk_nums = dec_blk_nums
-                )
-            case 'Baseline':
-                self.network = Baseline(
-                    c_in, 
-                    width = width,
-                    enc_blk_nums = enc_blk_nums, 
-                    mid_blk_num = mid_blk_num,
-                    dec_blk_nums = dec_blk_nums
-                )
-            case 'NAFNet':
-                self.network = NAFNet(
-                    c_in, 
-                    width = width,
-                    enc_blk_nums = enc_blk_nums, 
-                    mid_blk_num = mid_blk_num,
-                    dec_blk_nums = dec_blk_nums
-                )
-            case _:
-                self.network = PlainNet(
-                    c_in, 
-                    width = width,
-                    enc_blk_nums = enc_blk_nums, 
-                    mid_blk_num = mid_blk_num,
-                    dec_blk_nums = dec_blk_nums
-                )
-
-        if device is not None:
-            try:
-                self.device = torch.device(device)
-            except:
-                pass
-        else:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-            else:
-                self.device = torch.device('cpu')
-
-        self.network.to(self.device)
+    def __init__(self, net, device='cpu'):
+        self.net = net
+        self.device = device
+        self.net.to(device)
 
     def set_eval(self):
-        self.network.eval()
+        self.net.eval()
 
     def set_train(self):
-        self.network.train(True)
+        self.net.train(True)
 
     def predict(self, input):
-        if input.shape[-3] != self.c_in:
+        if input.shape[-3] != self.net.c_in:
             return input
-        return self.network(input)
+        return self.net(input)
     
     def get_parameters(self):
-        return self.network.parameters()
+        return self.net.parameters()
 
     def get_modules(self):
         modules = []
-        for idx, module in enumerate(self.network.named_children()):
+        for idx, module in enumerate(self.net.named_children()):
             modules.append(module)
         return modules
 
@@ -91,16 +35,16 @@ class SISRModel():
         return self.device
 
     def network_type(self):
-        return self.network.__class__.__name__
+        return self.net.__class__.__name__
 
     def input_channel_depth(self):
-        return self.c_in
+        return self.net.c_in
 
     def save_model(self, path):
-        torch.save(self.network.state_dict(), path)
+        torch.save(self.net.state_dict(), path)
 
     def load_model(self, path):
-        self.network.load_state_dict(torch.load(path, weights_only=True))
+        self.net.load_state_dict(torch.load(path, weights_only=True))
 
 
 def sisr_network_types():

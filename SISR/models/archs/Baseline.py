@@ -77,11 +77,17 @@ class Baseline(nn.Module):
             nn.PixelShuffle(2)
         )
 
+        # Additional Stuff
+        self.c_in = c_in
+        self.padder_size = 2 ** len(self.encoding_blocks)
+
     def forward(self, input):
-        enc_outs = []
+        B, C, H, W = input.shape
+        input = self.conform_image_size(input)
 
         input = self.intro(input)
 
+        enc_outs = []
         for encoder, down in zip(self.encoding_blocks, self.downs):
             input = encoder(input)
             enc_outs.append(input)
@@ -96,9 +102,16 @@ class Baseline(nn.Module):
             input = decoder(input)
 
         input = self.ending(input)
-
         input = self.upscale_block(input)
-        return input 
+
+        return input
+
+    def conform_image_size(self, img):
+        _, _, h, w = img.size()
+        mod_pad_h = (self.padder_size - h % self.padder_size) % self.padder_size
+        mod_pad_w = (self.padder_size - w % self.padder_size) % self.padder_size
+        img = nn.functional.pad(img, (0, mod_pad_w, 0, mod_pad_h))
+        return img
 
 
 class BaselineBlock(nn.Module):

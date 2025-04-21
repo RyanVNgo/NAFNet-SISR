@@ -29,7 +29,7 @@ def main():
     if not os.path.exists(data_path):
         raise FileNotFoundError(f'Invalid dataset path: {data_path}\n')
 
-    dataset = custom_dataset.SISRDataset(data_path)
+    dataset = custom_dataset.SISRDataset(data_path, crop=256)
     if len(dataset) == 0:
         raise FileNotFoundError(f'No valid images found in dataset path: {data_path}')
 
@@ -39,9 +39,25 @@ def main():
     print(f'    Dataset target shape: {dataset[0]['target'].shape}\n')
 
     # Placeholder for validating models
+    device = 'cpu'
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+
+    c_in = 3
+    width = 16
+    enc_blk_nums = [1, 2, 4]
+    mid_blk_num = 1
+    dec_blk_nums = [4, 2, 1]
+
+    networks = [
+        models.PlainNet(c_in, width, mid_blk_num, enc_blk_nums, dec_blk_nums),
+        models.Baseline(c_in, width, mid_blk_num, enc_blk_nums, dec_blk_nums),
+        models.NAFNet(c_in, width, mid_blk_num, enc_blk_nums, dec_blk_nums)
+    ]
+
     sisr_models = []
-    for net_type in models.sisr_network_types():
-        sisr_models.append(models.SISRModel(net_type))
+    for net in networks:
+        sisr_models.append(models.SISRModel(net, device))
 
     for idx, model in enumerate(sisr_models):
         print(f'Model {idx}:')
@@ -65,7 +81,10 @@ def main():
             predict_times.append((end_time - start_time) * 1000)
 
         avg_predict_time = round(np.mean(predict_times[2:]), 3)
-        print(f'    Avg Predict Time for shape {dataset[0]['input'].shape}: {avg_predict_time}ms\n')
+        input_shape = dataset[0]['input'].numpy().shape
+        output_shape = pred.cpu().numpy().shape
+        print(f'    Avg Predict Time for shape {input_shape}: {avg_predict_time}ms')
+        print(f'        Output Shape: {output_shape}\n')
 
 
 def get_argparser():
