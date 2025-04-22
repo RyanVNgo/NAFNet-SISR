@@ -1,0 +1,45 @@
+
+name: NAFNet-SISR_w32
+
+model:
+  # load_path: ./
+  save_path: ./
+  device: 'cuda'
+
+  network_arch:
+    type: NAFNet
+    width: 16
+    enc_blk_nums: [1, 1]
+    mid_blk_num: 1
+    dec_blk_nums: [1, 1]
+
+training:
+  iterations: 1000
+
+  optimizer:
+    type: AdamW
+    weight_decay: 0.0
+    lr: !!float 1e-3
+    betas: [0.9, 0.9]
+
+  scheduler:
+    type: CosineAnnealingLR
+    t_max: 1000
+    eta_min: !!float 1e-7
+
+  losses:
+    psnr:
+      weights: 1.0
+
+datasets:
+  training:
+    data_path: ~/Downloads/DIV2K_train_HR/
+    
+  validation:  
+    data_path: ~/Downloads/DIV2K_valid_HR/
+
+  patch_size: 256
+  workers: 8
+
+
+
