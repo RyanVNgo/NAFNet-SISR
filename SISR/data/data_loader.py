@@ -20,12 +20,14 @@ def setup_dataloaders(options, batch_size, device):
         batch_size, 
         shuffle=True, 
         num_workers=workers,
+        persistent_workers=True
     )
     valid_loader = DataLoader(
         valid_dataset,
         batch_size,
         shuffle=True,
         num_workers=workers,
+        persistent_workers=True
     )
     return {'train':train_loader , 'valid':valid_loader}
 

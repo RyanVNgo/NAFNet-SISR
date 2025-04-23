@@ -3,10 +3,13 @@ import os
 from os import path
 
 import torch
+import yaml
+
 
 class SISRModel():
 
-    def __init__(self, net, device='cpu'):
+    def __init__(self, net, config, device='cpu'):
+        self.config = config 
         self.net = net
         self.device = device
         self.net.to(device)
@@ -45,6 +48,10 @@ class SISRModel():
 
     def load_model(self, path):
         self.net.load_state_dict(torch.load(path, weights_only=True))
+
+    def save_config(self, path):
+        with open(path, 'w') as net_config_file:
+            yaml.dump(self.config, net_config_file, default_flow_style=False)
 
 
 def sisr_network_types():

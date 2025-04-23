@@ -1,0 +1,8 @@
+model:
+  dec_blk_nums:
+  - 1
+  enc_blk_nums:
+  - 1
+  mid_blk_num: 1
+  type: PlainNet
+  width: 16

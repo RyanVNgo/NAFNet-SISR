@@ -66,7 +66,17 @@ def create_sisr_model(options):
                 dec_blk_nums=dec_blk_nums
             )
 
-    return SISRModel(net, device)
+    config = dict(
+        model = dict(
+            type = net_type,
+            width = width,
+            enc_blk_nums = enc_blk_nums,
+            mid_blk_num = mid_blk_num,
+            dec_blk_nums = dec_blk_nums
+        )
+    )
+
+    return SISRModel(net, config, device)
 
 
 def create_loss(type, options):
