@@ -1,11 +1,15 @@
 
+import torch
+
 from .sisr_model import SISRModel, sisr_network_types
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
+from .losses import losses
 
 __all__ = [
     'create_sisr_model'
+    'create_loss'
 
     # sisr_model.py
     'SISRModel',
@@ -32,6 +36,8 @@ def create_sisr_model(options):
     mid_blk_num = network_options.get('mid_blk_num', 1)
 
     device = options.get('device', 'cpu')
+    if not torch.cuda.is_available():
+        device = torch.device('cpu')
 
     net = None
     match net_type:
@@ -61,6 +67,18 @@ def create_sisr_model(options):
             )
 
     return SISRModel(net, device)
+
+
+def create_loss(type, options):
+    weight = options.get('weight', 1.0)
+    match type:
+        case 'psnrloss':
+            return losses.PSNRLoss(weight)
+        case 'l1loss':
+            return losses.L1Loss(weight)
+        case 'mseloss':
+            return losses.MSELoss(weight)
+    return None
 
 
 def default_sisr_net():

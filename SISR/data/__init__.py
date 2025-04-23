@@ -1,9 +1,9 @@
-from .data_loader import get_loader
+from .data_loader import setup_dataloaders
 from .custom_dataset import SISRDataset
 
 __all__ = [
     # data_loader.py
-    'get_loader'
+    'setup_dataloaders'
 
     # custom_dataset.py
     'SISRDataset'

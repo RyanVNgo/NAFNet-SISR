@@ -7,14 +7,15 @@ model:
   device: 'cuda'
 
   network_arch:
-    type: NAFNet
-    width: 16
-    enc_blk_nums: [1, 1]
+    type: PlainNet
+    width: 12
+    enc_blk_nums: []
     mid_blk_num: 1
-    dec_blk_nums: [1, 1]
+    dec_blk_nums: []
 
 training:
-  iterations: 1000
+  iterations: 16
+  batch_size: 32
 
   optimizer:
     type: AdamW
@@ -24,11 +25,11 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 1000
+    t_max: 16
     eta_min: !!float 1e-7
 
   losses:
-    psnr:
+    psnrloss:
       weights: 1.0
 
 datasets:
@@ -38,8 +39,7 @@ datasets:
   validation:  
     data_path: ~/Downloads/DIV2K_valid_HR/
 
-  patch_size: 256
-  workers: 8
-
+  patch_size: 128
+  workers: 4
 
 
