@@ -23,10 +23,7 @@ __all__ = [
 
 
 def create_sisr_model(options):
-    network_options = options.get('network_arch', None)
-
-    if network_options is None:
-        return default_sisr_net()
+    network_options = options.get('network_arch', {})
 
     net_type = network_options.get('type', 'PlainNet')
     c_in =  network_options.get('c_in', 3)
@@ -67,7 +64,7 @@ def create_sisr_model(options):
             )
 
     config = dict(
-        model = dict(
+        network_arch = dict(
             type = net_type,
             width = width,
             enc_blk_nums = enc_blk_nums,
@@ -89,16 +86,5 @@ def create_loss(type, options):
         case 'mseloss':
             return losses.MSELoss(weight)
     return None
-
-
-def default_sisr_net():
-    model = PlainNet (
-        c_in=3,
-        width=16,
-        mid_blk_num=1,
-        enc_blk_nums=[1, 1, 1],
-        dec_blk_nums=[1, 1, 1]
-    )
-    return model
 
 

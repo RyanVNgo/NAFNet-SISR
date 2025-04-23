@@ -10,8 +10,8 @@ class PlainNet(nn.Module):
         self.intro = nn.Conv2d(
             in_channels = c_in,
             out_channels = width,
-            kernel_size = 3,
-            padding = 1
+            kernel_size = 9,
+            padding = 4
         )
 
         curr_channels = width
@@ -77,6 +77,17 @@ class PlainNet(nn.Module):
             nn.PixelShuffle(2)
         )
 
+        # Experimental
+        self.final_reconstruction = nn.Sequential(
+            nn.Conv2d(
+                in_channels = width, 
+                out_channels = c_in * 4, 
+                kernel_size = 5, 
+                padding = 2
+            ),
+            nn.PixelShuffle(2)
+        )
+
         # Additional Stuff
         self.c_in = c_in
         self.padder_size = 2 ** len(self.encoding_blocks)
@@ -101,8 +112,9 @@ class PlainNet(nn.Module):
             input = input + enc_skip
             input = decoder(input)
 
-        input = self.ending(input)
-        input = self.upscale_block(input)
+        # input = self.ending(input)
+        # input = self.upscale_block(input)
+        input = self.final_reconstruction(input)
 
         return input
 
@@ -124,21 +136,21 @@ class PlainNetBlock(nn.Module):
         self.conv_1 = nn.Conv2d(
             in_channels = c_in, 
             out_channels = dw_channels,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = 3,
+            padding = 1
         )
         self.conv_2 = nn.Conv2d(
             in_channels = dw_channels, 
             out_channels = dw_channels,
-            kernel_size = 3,
-            padding = 1,
+            kernel_size = 5,
+            padding = 2,
             groups = dw_channels
         )
         self.conv_3 = nn.Conv2d(
             in_channels = dw_channels, 
             out_channels = c_in,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = 3,
+            padding = 1
         )
 
         # First dropout
@@ -149,14 +161,14 @@ class PlainNetBlock(nn.Module):
         self.conv_4 = nn.Conv2d(
             in_channels = c_in, 
             out_channels = ffn_channels,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = 3,
+            padding = 1
         )
         self.conv_5 = nn.Conv2d(
             in_channels = ffn_channels, 
             out_channels = c_in,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = 3,
+            padding = 1
         )
 
         # First dropout

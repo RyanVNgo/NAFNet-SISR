@@ -34,6 +34,9 @@ class SISRModel():
             modules.append(module)
         return modules
 
+    def to_device(self, device):
+        self.net.to(device)
+
     def curr_device(self):
         return self.device
 

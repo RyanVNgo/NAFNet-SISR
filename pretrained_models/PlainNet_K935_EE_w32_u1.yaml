@@ -1,0 +1,6 @@
+network_arch:
+  dec_blk_nums: []
+  enc_blk_nums: []
+  mid_blk_num: 1
+  type: PlainNet
+  width: 32

@@ -1,5 +1,5 @@
 
-name: PlainNet_w16_u111
+name: PlainNet_K935_EE_w32_u1
 
 model:
   # load_path: ./
@@ -8,15 +8,15 @@ model:
 
   network_arch:
     type: PlainNet 
-    width: 16
-    enc_blk_nums: [1]
+    width: 32
+    enc_blk_nums: []
     mid_blk_num: 1
-    dec_blk_nums: [1]
+    dec_blk_nums: []
 
 training:
-  iterations: 100
+  iterations: 1600
   valid_interval: 25
-  batch_size: 32
+  batch_size: 64
 
   optimizer:
     type: AdamW
@@ -26,7 +26,7 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 100
+    t_max: 1600
     eta_min: !!float 1e-7
 
   losses:
