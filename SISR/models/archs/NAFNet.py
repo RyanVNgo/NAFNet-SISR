@@ -77,6 +77,17 @@ class NAFNet(nn.Module):
             nn.PixelShuffle(2)
         )
 
+        # Modified Ending
+        self.final_reconstruction = nn.Sequential(
+            nn.Conv2d(
+                in_channels = width, 
+                out_channels = c_in * 4, 
+                kernel_size = 3, 
+                padding = 1
+            ),
+            nn.PixelShuffle(2)
+        )
+
         # Additional Stuff
         self.c_in = c_in
         self.padder_size = 2 ** len(self.encoding_blocks)
@@ -101,8 +112,10 @@ class NAFNet(nn.Module):
             input = input + enc_skip
             input = decoder(input)
 
-        input = self.ending(input)
-        input = self.upscale_block(input)
+        # input = self.ending(input)
+        # input = self.upscale_block(input)
+
+        input = self.final_reconstruction(input)
 
         return input
 

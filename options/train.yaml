@@ -1,5 +1,5 @@
 
-name: PlainNet_K935_EE_w32_u1
+name: NAFNet_w16_u111
 
 model:
   # load_path: ./
@@ -7,11 +7,11 @@ model:
   device: 'cuda'
 
   network_arch:
-    type: PlainNet 
-    width: 32
-    enc_blk_nums: []
+    type: NAFNet
+    width: 16
+    enc_blk_nums: [1]
     mid_blk_num: 1
-    dec_blk_nums: []
+    dec_blk_nums: [1]
 
 training:
   iterations: 1600
