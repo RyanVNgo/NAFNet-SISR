@@ -50,7 +50,13 @@ class SISRModel():
         torch.save(self.net.state_dict(), path)
 
     def load_model(self, path):
-        self.net.load_state_dict(torch.load(path, weights_only=True))
+        self.net.load_state_dict(
+            torch.load(
+                path, 
+                weights_only=True, 
+                map_location=self.device
+            )
+        )
 
     def save_config(self, path):
         with open(path, 'w') as net_config_file:

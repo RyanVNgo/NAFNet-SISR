@@ -8,14 +8,12 @@ import argparse
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
 
 import utils
 import models
 import data
 
 def main():
-    print(f"Running {os.path.basename(__file__)}\n")
     parser = get_argparser()
 
     if len(sys.argv) < 2:
@@ -91,6 +89,7 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         
         optimizer.zero_grad()
         train_loss.backward()
+        nn.utils.clip_grad_norm(model.parameters(), 1.0)
         optimizer.step()
         scheduler.step()
 
@@ -169,18 +168,18 @@ def setup_criterions(options):
 
 
 def setup_scheduler(optimizer, options):
-    scheduler_type = options.get('type', 'AdamW')
+    scheduler_type = options.get('type', 'CosineAnnealingLR')
     match scheduler_type:
         case 'CosineAnnealingLR':
             return torch.optim.lr_scheduler.CosineAnnealingLR(
                 optimizer=optimizer,
                 T_max=options.get('t_max'),
-                eta_min=options.get('eta_min', 0.0)
+                eta_min=options.get('eta_min', 1e-6)
             )
 
 
 def setup_optimizer(params, options):
-    optim_type= options.get('type', 'AdamW')
+    optim_type = options.get('type', 'AdamW')
     lr = options.get('lr', 1e-3)
     match optim_type:
         case 'Adam':
@@ -216,7 +215,7 @@ def setup_optimizer(params, options):
 
 def get_argparser():
     parser = argparse.ArgumentParser(
-        prog='NAFNet-SISR Train',
+        prog='train.py',
         description='Training script for project models',
     )
 

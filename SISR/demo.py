@@ -14,7 +14,6 @@ import data
 
 
 def main():
-    print(f"Running {os.path.basename(__file__)}")
     parser = get_argparser()
 
     if len(sys.argv) < 2:
@@ -86,8 +85,8 @@ def main():
 
 def get_argparser():
     parser = argparse.ArgumentParser(
-        prog='NAFNet-SISR Demo',
-        description='Training script for project models',
+        prog='demo.py',
+        description='Demo script for trying models',
     )
 
     parser.add_argument('-m', dest='model_path',type=str, required=True, help='Path to model .pth file')
