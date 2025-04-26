@@ -1,5 +1,5 @@
 
-name: NAFNet_w16_u111
+name: NAFNet_k935_u1
 
 model:
   # load_path: ./
@@ -9,19 +9,27 @@ model:
   network_arch:
     type: NAFNet
     width: 16
-    enc_blk_nums: [1]
+    enc_blk_nums: []
     mid_blk_num: 1
-    dec_blk_nums: [1]
+    dec_blk_nums: []
+
+    intro_k: 9
+    ending_k: 5
+
+    block:
+      dw_expand: 1
+      ffn_expand: 4
+      kernel_size: 3
 
 training:
   iterations: 1600
-  valid_interval: 25
-  batch_size: 64
+  valid_interval: 100
+  batch_size: 32
 
   optimizer:
     type: AdamW
     weight_decay: 0.0
-    lr: !!float 1e-3
+    lr: !!float 1e-4
     betas: [0.9, 0.9]
 
   scheduler:

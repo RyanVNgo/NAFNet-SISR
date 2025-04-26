@@ -89,7 +89,7 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         
         optimizer.zero_grad()
         train_loss.backward()
-        nn.utils.clip_grad_norm(model.parameters(), 1.0)
+        nn.utils.clip_grad_norm_(model.get_parameters(), 1.0)
         optimizer.step()
         scheduler.step()
 
@@ -101,7 +101,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         print(f'    LR: {scheduler.get_last_lr()[0]:.9f}')
         print(f'        Train Loss: {train_loss:0.6f}')
         if torch.cuda.is_available():
-            print(f'    Memory Usage (reserved): {torch.cuda.memory_reserved() / (1024**2):.2f} MB')
+            free, total = torch.cuda.mem_get_info(device)
+            print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
         print(f'    Iteration Time: {iter_elapsed_time:2f}s')
         print(f'    Total elapsed Time: {total_elapsed_time:2f}s')
 

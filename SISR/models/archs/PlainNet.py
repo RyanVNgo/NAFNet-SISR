@@ -4,14 +4,22 @@ import torch.nn as nn
 
 
 class PlainNet(nn.Module):
-    def __init__(self, c_in=3, width=16, mid_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
+    def __init__(self, c_in=3, width=16, mid_blk_num=1, enc_blk_nums=[], dec_blk_nums=[], intro_k=3, ending_k=3, block_opts=None):
         super().__init__()
+        dw_expand = 1
+        ffn_expand = 2
+        block_k = 1
+
+        if block_opts is not None:
+            dw_expand = block_opts.get('dw_expand', dw_expand)
+            ffn_expand = block_opts.get('ffn_expand', ffn_expand)
+            block_k = block_opts.get('kernel_size', block_k)
 
         self.intro = nn.Conv2d(
             in_channels = c_in,
             out_channels = width,
-            kernel_size = 3,
-            padding = 1
+            kernel_size = intro_k,
+            padding = (intro_k - 1) // 2
         )
 
         curr_channels = width
@@ -22,7 +30,7 @@ class PlainNet(nn.Module):
         for num in enc_blk_nums:
             self.encoding_blocks.append(
                 nn.Sequential(
-                    *[PlainNetBlock(c_in = curr_channels) for _ in range(num)]
+                    *[PlainNetBlock(curr_channels, dw_expand, ffn_expand, block_k) for _ in range(num)]
                 )
             )
             self.downs.append(
@@ -39,7 +47,7 @@ class PlainNet(nn.Module):
         self.middle_blocks = nn.ModuleList()
         self.middle_blocks.append(
             nn.Sequential(
-                *[PlainNetBlock(c_in = curr_channels) for _ in range(mid_blk_num)]
+                *[PlainNetBlock(curr_channels, dw_expand, ffn_expand, block_k) for _ in range(mid_blk_num)]
             )
         )
 
@@ -60,7 +68,7 @@ class PlainNet(nn.Module):
             curr_channels = curr_channels // 2
             self.decoding_blocks.append(
                 nn.Sequential(
-                    *[PlainNetBlock(c_in = curr_channels) for _ in range(num)]
+                    *[PlainNetBlock(curr_channels, dw_expand, ffn_expand, block_k) for _ in range(num)]
                 )
             )
 
@@ -82,8 +90,8 @@ class PlainNet(nn.Module):
             nn.Conv2d(
                 in_channels = width, 
                 out_channels = c_in * 4, 
-                kernel_size = 3,
-                padding = 1
+                kernel_size = ending_k,
+                padding = (ending_k - 1) // 2
             ),
             nn.PixelShuffle(2)
         )
@@ -129,7 +137,7 @@ class PlainNet(nn.Module):
 
 
 class PlainNetBlock(nn.Module):
-    def __init__(self, c_in, dw_expand=1, ffn_expand=2, dropout=0.0):
+    def __init__(self, c_in, dw_expand=1, ffn_expand=2, kernel_size=1, dropout=0.0):
         super().__init__()
 
         # First stage of block
@@ -137,21 +145,21 @@ class PlainNetBlock(nn.Module):
         self.conv_1 = nn.Conv2d(
             in_channels = c_in, 
             out_channels = dw_channels,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = kernel_size,
+            padding = (kernel_size - 1) // 2
         )
         self.conv_2 = nn.Conv2d(
             in_channels = dw_channels, 
             out_channels = dw_channels,
-            kernel_size = 3,
-            padding = 1,
+            kernel_size = (kernel_size * 2) + 1,
+            padding = kernel_size,
             groups = dw_channels
         )
         self.conv_3 = nn.Conv2d(
             in_channels = dw_channels, 
             out_channels = c_in,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = kernel_size,
+            padding = (kernel_size - 1) // 2
         )
 
         # First dropout
@@ -162,14 +170,14 @@ class PlainNetBlock(nn.Module):
         self.conv_4 = nn.Conv2d(
             in_channels = c_in, 
             out_channels = ffn_channels,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = kernel_size,
+            padding = (kernel_size - 1) // 2
         )
         self.conv_5 = nn.Conv2d(
             in_channels = ffn_channels, 
             out_channels = c_in,
-            kernel_size = 1,
-            padding = 0
+            kernel_size = kernel_size,
+            padding = (kernel_size - 1) // 2
         )
 
         # First dropout
