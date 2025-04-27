@@ -1,0 +1,164 @@
+
+# READ
+# This file is an example config file for model training. Ensure all necessary
+# parameters (marked by !REQUIRED!) are set and you ensure strict typing as 
+# configuration is case sensitive and exact. All optional parameeters are shown
+# with their default values.
+
+
+# (!REQUIRED!) Name of the model 
+# The filename of the saved model will be {name}.pth
+name: NAFNet_SISR_w32_u111
+
+# (!REQUIRED!) Parameters that define the model 
+model:
+  # Load path of the model
+  # If you want to load a pretrained model for continued training, set to the
+  # path of the .pth file. This will also prompt the program to look for the
+  # related .yaml file that represents the model's parameters. If the .yaml
+  # is found, you do not need to provide the subsequent parameters as they
+  # will be derived from the .yaml, otherwise you will need to fulfill
+  # the subsequent parameters.
+  # load_path: ./
+
+  # Save path of the model
+  # This dumps the .pth and .yaml file of the model to this directory
+  save_path: ./pretrained_models/
+
+  # (!REQUIRED!) Type of network 
+  # Supported types: PlainNet, Baseline, NAFNet
+  type: NAFNet
+
+  network_arch:
+    # Initial channel width expansion
+    # Current models perform an initial convolution to expand the channel
+    # depth to the width before they enter the primary arch blocks.
+    width: 16
+
+    # Number of blocks per encoding stage.
+    # This should be a list of numbers (ex. [1, 2, 4]) where each number
+    # represnets the number or blocks per encoding stage and the stages move
+    # top-to-bottom from left-to-right. Ensure the number of encoding
+    # stages (len(enc_blk_num)) matches the number of decoding stages.
+    enc_blk_nums: []
+
+    # Number blocks in the middle stage.
+    mid_blk_num: 1
+
+    # Number of blocks per decoding stage
+    # Similar to enc_blk_nums except the stages move bottom-to-top from
+    # left-to-right. Ensure the number of decoding stages (len(dec_blk_nums))
+    # matches the number of encoding stages.
+    dec_blk_nums: [1]
+
+    # Kernel size of intro and ending 
+    intro_k: 3
+    ending_k: 3
+
+    # Block parameters
+    block:
+      # Channel expansion multiplier for DW stage of block
+      dw_expand: 2
+      
+      # Channel expansion multiplier for FFN stage of block
+      ffn_expand: 2
+      
+      # Kernel size of block convolutions
+      kernel_size: 1
+
+
+# (!REQUIRED!) Training parameters
+training:
+  # Number of iterations
+  # Represents the number of back propagations the training performs. Can also
+  # be thought as the number of times a batch is processed in training.
+  # (Not required but defaults to 1, should likely be in the several thousands+)
+  iterations: 1
+
+  # Iteration interval between model validations
+  # Controls frequency of doing model validation on whole validation dataset
+  valid_interval: 32
+
+  # Batch size
+  batch_size: 16
+
+  # (!REQUIRED!) Training optmizer
+  optimizer:
+    # Optimizer type
+    # Supported types: Adam, AdamW, RMSprop, SGD
+    type: AdamW
+
+    # Learning Rate
+    lr: !!float 1e-3
+    
+    # Weight Decay
+    weight_decay: 0.0
+
+    # Beta values (if applicable)
+    betas: [0.9, 0.999]
+
+    # Momentum (if applicable)
+    momentum: 0.0
+
+    # Dampening (if applicable)
+    dampening: 0.0
+
+  # (!REQUIRED!) Scheduler parameters
+  scheduler:
+    # Scheduler Type
+    # Supported types: CosineAnnealingLR
+    type: CosineAnnealingLR
+
+    # (!REQUIRED!) Maximum iterations
+    # Preferably equal to number of iterations
+    t_max: 1600
+
+    # Minimum learning rate
+    eta_min: !!float 1e-7
+
+  # (!REQUIRED!) Loss function parameters
+  losses:
+    # Losses are added by added a key with the name of the supported type.
+    # Supported types: psnrloss, mseloss, l1loss
+    # All will be show here but at least 1 must be present. Each loss
+    # may have an optional 'weight' parameter that defaults to 1 and represents
+    # the factor the loss contributes to the total loss.
+
+    l1loss:
+      weight: 1.0
+
+    mseloss:
+      weight: 1.0
+
+    psnrloss:
+      weight: 1.0
+
+
+# (!DATASETS!) Dataset parameters
+datasets:
+
+  # (!REQUIRED!) Training dataset parameters
+  training:
+    # (!REQUIRED!) Path to directory of training data
+    # Valid image types: png, jpg, jpeg
+    data_path: ~/Downloads/DIV2K_train_HR/
+    
+  # (!REQUIRED!) Validation dataset parameters
+  validation:  
+    # (!REQUIRED!) Path to directory of validation data
+    # Valid image types: png, jpg, jpeg
+    data_path: ~/Downloads/DIV2K_valid_HR/
+
+  # Patch size or HR images
+  # LR images are derived as a factor of this value. Prefer an value > 128 and
+  # easily divisble by 2.
+  patch_size: 128
+  
+  # Number or workers
+  # This controls the number of threads the training script will utilize
+  # to load data from the dataloader.
+  workers: 4
+
+
+
+
