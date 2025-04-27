@@ -1,5 +1,5 @@
 
-name: NAFNet_w16_u111
+name: NAFNet_w32_k935_u3
 
 model:
   # load_path: ./pretrained_models/NAFNet_w16_u111.pth
@@ -8,21 +8,21 @@ model:
 
   network_arch:
     type: NAFNet
-    width: 16
-    enc_blk_nums: [1]
-    mid_blk_num: 1
-    dec_blk_nums: [1]
+    width: 32
+    enc_blk_nums: []
+    mid_blk_num: 3
+    dec_blk_nums: []
 
-    intro_k: 3
-    ending_k: 3
+    intro_k: 9
+    ending_k: 5
 
     block:
       dw_expand: 2
       ffn_expand: 2
-      kernel_size: 1
+      kernel_size: 3
 
 training:
-  iterations: 3200
+  iterations: 12000
   valid_interval: 100
   batch_size: 32
 
@@ -34,12 +34,14 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 3200
+    t_max: 12000
     eta_min: !!float 1e-7
 
   losses:
-    psnrloss:
+    mseloss:
       weight: 1.0
+    l1loss:
+      weight: 0.01
 
 datasets:
   training:
@@ -49,6 +51,6 @@ datasets:
     data_path: ~/Downloads/DIV2K_valid_HR/
 
   patch_size: 256
-  workers: 4
+  workers: 6
 
 

@@ -2,12 +2,15 @@
 import os
 import sys
 import time
+import datetime
 import random
 import argparse
+from collections import deque
 
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.amp import GradScaler, autocast
 from torcheval.metrics import PeakSignalNoiseRatio
 
 import utils
@@ -67,12 +70,15 @@ def main():
 
 
 def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, iterations, valid_interval):
+    time_window = deque(maxlen=64)
+
     start_time = time.time()
     device = model.curr_device()
     train_loader = dataloaders['train']
     valid_loader = dataloaders['valid']
     train_iter = iter(train_loader)
-    metric = PeakSignalNoiseRatio(device=device)
+    scaler = GradScaler()
+
     for i in range(iterations):
         iter_start_time = time.time()
         try:
@@ -85,32 +91,40 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         target = train_batch['target'].to(device)
 
         model.set_train()
-        pred = model.predict(input)
-
-        loss = 0.0
-        for loss_fn in criterions:
-            loss += loss_fn(pred, target)
-        
+        with autocast(device):
+            pred = model.predict(input)
+            loss = 0.0
+            for loss_fn in criterions:
+                loss += loss_fn(pred, target)
+            
         optimizer.zero_grad()
-        loss.backward()
+        # loss.backward()
+        scaler.scale(loss).backward()
         nn.utils.clip_grad_norm_(model.get_parameters(), 1.0)
-        optimizer.step()
+        # optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
         scheduler.step()
 
         iter_elapsed_time = time.time() - iter_start_time
         total_elapsed_time = time.time() - start_time
+        time_window.append(iter_elapsed_time)
 
-        metric.update(pred, target)
         print(f'---')
         print(f'Iteration {i+1} / {iterations}')
         print(f'    LR: {scheduler.get_last_lr()[0]:.9f}')
         print(f'        Train Loss: {loss:0.6f}')
-        print(f'        PSNR: {metric.compute():0.2f}')
-        if torch.cuda.is_available():
+        if device == 'cuda':
             free, total = torch.cuda.mem_get_info(device)
             print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
         print(f'    Iteration Time: {iter_elapsed_time:2f}s')
         print(f'    Total elapsed Time: {total_elapsed_time:2f}s')
+
+        iter_rem = iterations - i
+        est_rem_time = iter_rem * (sum(time_window) / len(time_window))
+        pred_end_time = time.time() + est_rem_time
+        end_time_str = datetime.datetime.fromtimestamp(pred_end_time).strftime('%Y-%m-%d %H:%M:%S')
+        print(f'    Predicted End Time: {end_time_str}')
 
         valid_loss = None
         if i % valid_interval == valid_interval - 1:

@@ -30,6 +30,6 @@ class PSNRLoss(nn.Module):
         self.scale = 10 / np.log(10)
 
     def forward(self, pred, target):
-        loss = self.scale * torch.log(((pred - target) ** 2).mean(dim=(1,2,3)) + 1e-8).mean()
-        return self.weight * loss
+        mse = torch.mean((pred - target) ** 2) + 1e-8
+        return self.weight * -20 * torch.log10(1.0 / torch.sqrt(mse))
 
