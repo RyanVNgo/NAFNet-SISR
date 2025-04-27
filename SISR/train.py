@@ -8,6 +8,7 @@ import argparse
 import numpy as np
 import torch
 import torch.nn as nn
+from torcheval.metrics import PeakSignalNoiseRatio
 
 import utils
 import models
@@ -54,7 +55,6 @@ def main():
     print(f'    Batch Size: {batch_size}')
     print(f'    Iterations: {iterations}')
     print(f'    Validation Interval: {valid_interval}')
-    print(f'        (Effective Epochs): {iterations / len(dataloaders['train'])}')
     print(f'    Model will be saved to:\n       {model_save_path}')
 
     model = train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, iterations, valid_interval)
@@ -67,11 +67,12 @@ def main():
 
 
 def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, iterations, valid_interval):
+    start_time = time.time()
     device = model.curr_device()
     train_loader = dataloaders['train']
     valid_loader = dataloaders['valid']
     train_iter = iter(train_loader)
-    start_time = time.time()
+    metric = PeakSignalNoiseRatio(device=device)
     for i in range(iterations):
         iter_start_time = time.time()
         try:
@@ -80,15 +81,18 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             train_iter = iter(train_loader)
             train_batch = next(train_iter)
 
-        model.set_train()
-        output = model.predict(train_batch['input'].to(device))
+        input = train_batch['input'].to(device)
+        target = train_batch['target'].to(device)
 
-        train_loss = 0.0
+        model.set_train()
+        pred = model.predict(input)
+
+        loss = 0.0
         for loss_fn in criterions:
-            train_loss += loss_fn(output, train_batch['target'].to(device))
+            loss += loss_fn(pred, target)
         
         optimizer.zero_grad()
-        train_loss.backward()
+        loss.backward()
         nn.utils.clip_grad_norm_(model.get_parameters(), 1.0)
         optimizer.step()
         scheduler.step()
@@ -96,10 +100,12 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         iter_elapsed_time = time.time() - iter_start_time
         total_elapsed_time = time.time() - start_time
 
+        metric.update(pred, target)
         print(f'---')
         print(f'Iteration {i+1} / {iterations}')
         print(f'    LR: {scheduler.get_last_lr()[0]:.9f}')
-        print(f'        Train Loss: {train_loss:0.6f}')
+        print(f'        Train Loss: {loss:0.6f}')
+        print(f'        PSNR: {metric.compute():0.2f}')
         if torch.cuda.is_available():
             free, total = torch.cuda.mem_get_info(device)
             print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
@@ -135,7 +141,6 @@ def validate_model(model, valid_loader, criterions):
 
 def define_model_save_path(options):
     save_path = os.path.abspath(options['model'].get('save_path', './'))
-    print(save_path)
     if os.path.exists(save_path) == False:
         save_path = os.path.abspath(os.getcwd())
     file_name = options['name'] + '.pth'

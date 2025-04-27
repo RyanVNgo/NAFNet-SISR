@@ -51,6 +51,21 @@ model:
     # matches the number of encoding stages.
     dec_blk_nums: [1]
 
+    # Kernel size of intro and ending 
+    intro_k: 3
+    ending_k: 3
+
+    # Block parameters
+    block:
+      # Channel expansion multiplier for DW stage of block
+      dw_expand: 2
+      
+      # Channel expansion multiplier for FFN stage of block
+      ffn_expand: 2
+      
+      # Kernel size of block convolutions
+      kernel_size: 1
+
 
 # (!REQUIRED!) Training parameters
 training:
@@ -110,13 +125,13 @@ training:
     # the factor the loss contributes to the total loss.
 
     l1loss:
-      weights: 1.0
+      weight: 1.0
 
     mseloss:
-      weights: 1.0
+      weight: 1.0
 
     psnrloss:
-      weights: 1.0
+      weight: 1.0
 
 
 # (!DATASETS!) Dataset parameters

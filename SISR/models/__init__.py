@@ -1,4 +1,5 @@
 
+import os
 import torch
 
 from .sisr_model import SISRModel, sisr_network_types
@@ -6,6 +7,9 @@ from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
 from .losses import losses
+
+import utils
+
 
 __all__ = [
     'create_sisr_model'
@@ -24,6 +28,20 @@ __all__ = [
 
 def create_sisr_model(options):
     network_options = options.get('network_arch', {})
+    
+    load_path = options.get('load_path', None)
+    yaml_path = None
+    if load_path is not None:
+        load_path = os.path.abspath(load_path)
+        if os.path.exists(load_path):
+            dir = os.path.dirname(load_path)
+            filename = os.path.basename(load_path)
+            filename = os.path.splitext(filename)[0] + '.yaml'
+            yaml_path = os.path.join(dir, filename)
+
+    if yaml_path is not None:
+        print('Network loaded')
+        network_options = utils.parse_options(yaml_path).get('network_arch', {})
 
     net_type = network_options.get('type', 'PlainNet')
     c_in =  network_options.get('c_in', 3)
@@ -90,7 +108,10 @@ def create_sisr_model(options):
         )
     )
 
-    return SISRModel(net, config, device)
+    model = SISRModel(net, config, device)
+    if load_path is not None:
+        model.load_model(load_path)
+    return model
 
 
 def create_loss(type, options):
