@@ -12,10 +12,12 @@ import torch
 import torch.nn as nn
 from torch.amp import GradScaler, autocast
 from torcheval.metrics import PeakSignalNoiseRatio
+from torch.utils.tensorboard import SummaryWriter
 
 import utils
 import models
 import data
+
 
 def main():
     parser = get_argparser()
@@ -28,7 +30,12 @@ def main():
     options = utils.parse_options(args.opt)
 
     print('Setting up Model...')
-    model = models.create_sisr_model(options.get('model'))
+    model_name = options.get('name')
+    model_options = options.get('model')
+    model = models.create_sisr_model(model_options)
+    model_save_path = utils.model_save_path(model_options.get('save_path', None), model_name)
+    config_save_path = utils.config_save_path(model_save_path)
+
     training_options = options.get('training', None)
     print('Setting up optimizer...')
     optimizer = setup_optimizer(model.get_parameters(), training_options.get('optimizer'))
@@ -41,10 +48,11 @@ def main():
     valid_interval = training_options.get('valid_interval', 32)
 
     print('Setting up data loaders...\n')
-    dataset_opts = options.get('datasets')
-    dataloaders = data.setup_dataloaders(dataset_opts, batch_size, model.curr_device())
+    dataset_options = options.get('datasets')
+    dataloaders = data.setup_dataloaders(dataset_options, batch_size, model.curr_device())
 
-    model_save_path = define_model_save_path(options)
+    logging_dir = os.path.abspath('./logs/' + model_name)
+    log_writer = SummaryWriter(log_dir=logging_dir)
 
     print(f'Starting training for network: {model.network_type()}')
     print(f'    Device: {model.curr_device()}')
@@ -60,24 +68,33 @@ def main():
     print(f'    Validation Interval: {valid_interval}')
     print(f'    Model will be saved to:\n       {model_save_path}')
 
-    model = train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, iterations, valid_interval)
+    model = train_for_iterations(
+        model, 
+        dataloaders, 
+        optimizer, 
+        scheduler, 
+        criterions, 
+        iterations, 
+        valid_interval,
+        log_writer
+    )
 
+    log_writer.close()
     model.save_model(model_save_path)
-    model_config_save_path = define_model_config_save_path(model_save_path)
-    model.save_config(model_config_save_path)
-
+    model.save_config(config_save_path)
     return
 
 
-def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, iterations, valid_interval):
+def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, iterations, valid_interval, log_writer):
     time_window = deque(maxlen=64)
-
     start_time = time.time()
+
     device = model.curr_device()
     train_loader = dataloaders['train']
     valid_loader = dataloaders['valid']
     train_iter = iter(train_loader)
     scaler = GradScaler()
+    metric = PeakSignalNoiseRatio(data_range=1.0, device=device)
 
     for i in range(iterations):
         iter_start_time = time.time()
@@ -98,10 +115,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
                 loss += loss_fn(pred, target)
             
         optimizer.zero_grad()
-        # loss.backward()
         scaler.scale(loss).backward()
         nn.utils.clip_grad_norm_(model.get_parameters(), 1.0)
-        # optimizer.step()
         scaler.step(optimizer)
         scaler.update()
         scheduler.step()
@@ -110,18 +125,25 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         total_elapsed_time = time.time() - start_time
         time_window.append(iter_elapsed_time)
 
+        metric.reset()
+        metric.update(pred, target)
+
+        log_writer.add_scalar('Loss/Train', loss.item(), i)
+        log_writer.add_scalar('PSNR/Train', metric.compute(), i)
+
         print(f'---')
         print(f'Iteration {i+1} / {iterations}')
         print(f'    LR: {scheduler.get_last_lr()[0]:.9f}')
         print(f'        Train Loss: {loss:0.6f}')
+        print(f'    Metrics:')
+        print(f'        {metric.__class__.__name__}: {metric.compute():.4f}')
         if device == 'cuda':
             free, total = torch.cuda.mem_get_info(device)
             print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
         print(f'    Iteration Time: {iter_elapsed_time:2f}s')
         print(f'    Total elapsed Time: {total_elapsed_time:2f}s')
 
-        iter_rem = iterations - i
-        est_rem_time = iter_rem * (sum(time_window) / len(time_window))
+        est_rem_time = (iterations - i) * (sum(time_window) / len(time_window))
         pred_end_time = time.time() + est_rem_time
         end_time_str = datetime.datetime.fromtimestamp(pred_end_time).strftime('%Y-%m-%d %H:%M:%S')
         print(f'    Predicted End Time: {end_time_str}')
@@ -131,8 +153,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             print(f'---')
             print(f'Validating model...')
             valid_loss = validate_model(model, valid_loader, criterions)
+            log_writer.add_scalar('Loss/Valid', valid_loss, i)
             print(f'    Validation Loss: {valid_loss}')
-        # time.sleep(0.15)
 
     elapsed_time = time.time() - start_time
     print(f'\nTraining Complete')
@@ -151,31 +173,6 @@ def validate_model(model, valid_loader, criterions):
         for loss_fn in criterions:
             valid_loss += loss_fn(output, valid_batch['target'].to(device))
     return valid_loss / len(valid_loader)
-
-
-def define_model_save_path(options):
-    save_path = os.path.abspath(options['model'].get('save_path', './'))
-    if os.path.exists(save_path) == False:
-        save_path = os.path.abspath(os.getcwd())
-    file_name = options['name'] + '.pth'
-
-    model_save_path = os.path.join(save_path, file_name)
-    if os.path.exists(model_save_path):
-        index = 1;
-        while os.path.exists(model_save_path):
-            file_name = f'{options['name']}_({index}).pth'
-            model_save_path = os.path.join(save_path, file_name)
-            index += 1
-
-    return model_save_path
-
-
-def define_model_config_save_path(model_save_path):
-    dir = os.path.dirname(model_save_path)
-    filename = os.path.basename(model_save_path)
-    filename = os.path.splitext(filename)[0] + '.yaml'
-    model_config_save_path = os.path.join(dir, filename)
-    return model_config_save_path
 
 
 def setup_criterions(options):

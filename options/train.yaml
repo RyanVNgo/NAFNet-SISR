@@ -1,5 +1,5 @@
 
-name: NAFNet_w32_k935_u3
+name: SRNAFNet_w32_k513_u3
 
 model:
   # load_path: ./pretrained_models/NAFNet_w16_u111.pth
@@ -13,17 +13,17 @@ model:
     mid_blk_num: 3
     dec_blk_nums: []
 
-    intro_k: 9
-    ending_k: 5
+    intro_k: 5
+    ending_k: 3
 
     block:
       dw_expand: 2
       ffn_expand: 2
-      kernel_size: 3
+      kernel_size: 1
 
 training:
   iterations: 12000
-  valid_interval: 100
+  valid_interval: 25
   batch_size: 32
 
   optimizer:
