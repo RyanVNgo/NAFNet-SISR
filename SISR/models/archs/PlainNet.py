@@ -61,6 +61,7 @@ class PlainNet(nn.Module):
                         in_channels = curr_channels, 
                         out_channels = curr_channels * 2, 
                         kernel_size = 1,
+                        bias = False
                     ),
                     nn.PixelShuffle(2)
                 )

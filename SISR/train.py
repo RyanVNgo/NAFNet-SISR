@@ -152,9 +152,10 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         if i % valid_interval == valid_interval - 1:
             print(f'---')
             print(f'Validating model...')
-            valid_loss = validate_model(model, valid_loader, criterions)
-            log_writer.add_scalar('Loss/Valid', valid_loss, i)
+            valid_loss, img_ex_grid = validate_model(model, valid_loader, criterions)
             print(f'    Validation Loss: {valid_loss}')
+            log_writer.add_scalar('Loss/Valid', valid_loss, i)
+            log_writer.add_image('LR_SR_HR', img_ex_grid, i)
 
     elapsed_time = time.time() - start_time
     print(f'\nTraining Complete')
@@ -167,12 +168,28 @@ def validate_model(model, valid_loader, criterions):
     model.set_eval()
     device = model.curr_device()
     valid_loss = 0.0
+    input = None
+    pred = None
+    target = None
     for valid_batch in valid_loader:
+        input = valid_batch['input'].to(device)
+        target = valid_batch['target'].to(device)
         with torch.no_grad():
-            output = model.predict(valid_batch['input'].to(device))
+            pred = model.predict(input)
         for loss_fn in criterions:
-            valid_loss += loss_fn(output, valid_batch['target'].to(device))
-    return valid_loss / len(valid_loader)
+            valid_loss += loss_fn(pred, target)
+    ex_grid = prepare_image_preview(input[0], pred[0], target[0])
+    return (valid_loss / len(valid_loader)), ex_grid
+
+
+def prepare_image_preview(lr_img, sr_img, hr_img):
+    sf = 1
+    if hr_img.shape[-1] < 256:
+        sf = 2
+    hr_img = nn.functional.interpolate(hr_img.unsqueeze(0), scale_factor=sf).squeeze(0)
+    sr_img = nn.functional.interpolate(sr_img.unsqueeze(0), scale_factor=sf).squeeze(0)
+    lr_img = nn.functional.interpolate(lr_img.unsqueeze(0), scale_factor=sf * 2).squeeze(0)
+    return torch.cat((lr_img, sr_img, hr_img), dim=2)
 
 
 def setup_criterions(options):

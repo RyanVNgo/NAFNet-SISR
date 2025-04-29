@@ -1,5 +1,5 @@
 
-name: SRNAFNet_w32_k513_u3
+name: SRNAFNet_ablation
 
 model:
   # load_path: ./pretrained_models/NAFNet_w16_u111.pth
@@ -7,10 +7,10 @@ model:
   device: 'cuda'
 
   network_arch:
-    type: NAFNet
-    width: 32
+    type: SRNAFNet
+    width: 64
     enc_blk_nums: []
-    mid_blk_num: 3
+    mid_blk_num: 1
     dec_blk_nums: []
 
     intro_k: 5
@@ -22,9 +22,9 @@ model:
       kernel_size: 1
 
 training:
-  iterations: 12000
-  valid_interval: 25
-  batch_size: 32
+  iterations: 3200
+  valid_interval: 32
+  batch_size: 16
 
   optimizer:
     type: AdamW
@@ -34,14 +34,14 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 12000
+    t_max: 3200
     eta_min: !!float 1e-7
 
   losses:
-    mseloss:
-      weight: 1.0
+    # mseloss:
+    #   weight: 1.0
     l1loss:
-      weight: 0.01
+      weight: 1.0
 
 datasets:
   training:
@@ -50,7 +50,7 @@ datasets:
   validation:  
     data_path: ~/Downloads/DIV2K_valid_HR/
 
-  patch_size: 256
+  patch_size: 384
   workers: 6
 
 

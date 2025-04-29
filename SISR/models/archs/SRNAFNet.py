@@ -2,9 +2,8 @@
 import torch
 import torch.nn as nn
 
-
-class NAFNet(nn.Module):
-    def __init__(self, c_in=3, width=16, mid_blk_num=1, enc_blk_nums=[], dec_blk_nums=[], intro_k=3, ending_k=3, block_opts=None):
+class SRNAFNet(nn.Module):
+    def __init__(self, c_in=3, width=16, mid_blk_num=1, intro_k=3, ending_k=3, block_opts=None):
         super().__init__()
         dw_expand = 2
         ffn_expand = 2
@@ -15,6 +14,7 @@ class NAFNet(nn.Module):
             ffn_expand = block_opts.get('ffn_expand', ffn_expand)
             block_k = block_opts.get('kernel_size', block_k)
 
+        # Shallow Feature Extraction
         self.intro = nn.Conv2d(
             in_channels = c_in,
             out_channels = width,
@@ -22,110 +22,41 @@ class NAFNet(nn.Module):
             padding = (intro_k - 1) // 2
         )
 
-        curr_channels = width
-
-        # Construct the encoding path
-        self.encoding_blocks = nn.ModuleList()
-        self.downs = nn.ModuleList()
-        for num in enc_blk_nums:
-            self.encoding_blocks.append(
-                nn.Sequential(
-                    *[NAFNetBlock(curr_channels, dw_expand, ffn_expand, block_k) for _ in range(num)]
-                )
-            )
-            self.downs.append(
-                nn.Conv2d(
-                    in_channels = curr_channels,
-                    out_channels = curr_channels * 2,
-                    kernel_size = 2,
-                    stride = 2
-                )
-            )
-            curr_channels = curr_channels * 2
-
-        # Construct the middle path
+        # Deep Feature Extraction Blocks (Middle Blocks) 
         self.middle_blocks = nn.ModuleList()
         self.middle_blocks.append(
             nn.Sequential(
-                *[NAFNetBlock(curr_channels, dw_expand, ffn_expand, block_k) for _ in range(mid_blk_num)]
+                *[NAFNetBlock(width, dw_expand, ffn_expand, block_k) for _ in range(mid_blk_num)]
             )
         )
 
-        # Construct the decoding path
-        self.decoding_blocks = nn.ModuleList()
-        self.ups = nn.ModuleList()
-        for num in dec_blk_nums:
-            self.ups.append(
-                nn.Sequential(
-                    nn.Conv2d(
-                        in_channels = curr_channels, 
-                        out_channels = curr_channels * 2, 
-                        kernel_size = 1,
-                        bias = False
-                    ),
-                    nn.PixelShuffle(2)
-                )
-            )
-            curr_channels = curr_channels // 2
-            self.decoding_blocks.append(
-                nn.Sequential(
-                    *[NAFNetBlock(curr_channels, dw_expand, ffn_expand, block_k) for _ in range(num)]
-                )
-            )
-
+        # Transition
         self.ending = nn.Conv2d(
             in_channels = width,
-            out_channels = c_in,
-            kernel_size = 3,
-            padding = 1
+            out_channels = c_in * 4,
+            kernel_size = ending_k,
+            padding = (ending_k - 1) // 2
         )
 
-        # Appended Upscaling Block
-        self.upscale_block = nn.Sequential(
-            nn.Conv2d(c_in, c_in * 4, kernel_size = 3, padding = 1),
-            nn.PixelShuffle(2)
-        )
-
-        # Modified Ending
+        # Depth To Space
         self.final_reconstruction = nn.Sequential(
-            nn.Conv2d(
-                in_channels = width, 
-                out_channels = c_in * 4, 
-                kernel_size = ending_k, 
-                padding = (ending_k - 1) // 2
-            ),
             nn.PixelShuffle(2)
         )
 
         # Additional Stuff
         self.c_in = c_in
-        self.padder_size = 2 ** len(self.encoding_blocks)
+        self.padder_size = 1
 
     def forward(self, input):
         B, C, H, W = input.shape
         input = self.conform_image_size(input)
-
         input = self.intro(input)
-
-        enc_outs = []
-        for encoder, down in zip(self.encoding_blocks, self.downs):
-            input = encoder(input)
-            enc_outs.append(input)
-            input = down(input)
 
         for middle_block in self.middle_blocks:
             input = middle_block(input)
 
-        for decoder, up, enc_skip in zip(self.decoding_blocks, self.ups, enc_outs[::-1]):
-            input = up(input)
-            input = input + enc_skip
-            input = decoder(input)
-
-        # input = self.ending(input)
-        # input = self.upscale_block(input)
-
+        input = self.ending(input)
         input = self.final_reconstruction(input)
-
         return input
 
     def conform_image_size(self, img):

@@ -6,6 +6,7 @@ from .sisr_model import SISRModel, sisr_network_types
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
+from .archs.SRNAFNet import SRNAFNet
 from .losses import losses
 
 import utils
@@ -23,6 +24,7 @@ __all__ = [
     'PlainNet'
     'Baseline'
     'NAFNet'
+    'SRNAFNet'
 ]
 
 
@@ -88,6 +90,15 @@ def create_sisr_model(options):
                 mid_blk_num=mid_blk_num,
                 enc_blk_nums=enc_blk_nums,
                 dec_blk_nums=dec_blk_nums,
+                intro_k=intro_k,
+                ending_k=ending_k,
+                block_opts=block_opts
+            )
+        case 'SRNAFNet':
+            net = SRNAFNet(
+                c_in=c_in,
+                width=width,
+                mid_blk_num=mid_blk_num,
                 intro_k=intro_k,
                 ending_k=ending_k,
                 block_opts=block_opts
