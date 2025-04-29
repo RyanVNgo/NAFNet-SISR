@@ -1,5 +1,5 @@
 
-name: SRNAFNet_w32_k513_u3
+name: SRNAFGAN_w64_k735_u1
 
 model:
   # load_path: ./pretrained_models/NAFNet_w16_u111.pth
@@ -8,23 +8,23 @@ model:
 
   network_arch:
     type: NAFNet
-    width: 32
+    width: 64
     enc_blk_nums: []
-    mid_blk_num: 3
+    mid_blk_num: 1
     dec_blk_nums: []
 
-    intro_k: 5
-    ending_k: 3
+    intro_k: 7
+    ending_k: 5
 
     block:
       dw_expand: 2
       ffn_expand: 2
-      kernel_size: 1
+      kernel_size: 3
 
 training:
-  iterations: 12000
-  valid_interval: 25
-  batch_size: 32
+  iterations: 6400
+  valid_interval: 32
+  batch_size: 16
 
   optimizer:
     type: AdamW
@@ -34,14 +34,14 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 12000
-    eta_min: !!float 1e-7
+    t_max: 6400
+    eta_min: !!float 1e-6
 
   losses:
     mseloss:
       weight: 1.0
     l1loss:
-      weight: 0.01
+      weight: 0.075
 
 datasets:
   training:

@@ -10,6 +10,7 @@ from collections import deque
 import numpy as np
 import torch
 import torch.nn as nn
+import torchvision
 from torch.amp import GradScaler, autocast
 from torcheval.metrics import PeakSignalNoiseRatio
 from torch.utils.tensorboard import SummaryWriter
@@ -96,6 +97,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     scaler = GradScaler()
     metric = PeakSignalNoiseRatio(data_range=1.0, device=device)
 
+    descrim = models.MNAFDModel(iterations, device)
+
     for i in range(iterations):
         iter_start_time = time.time()
         try:
@@ -113,6 +116,11 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             loss = 0.0
             for loss_fn in criterions:
                 loss += loss_fn(pred, target)
+
+        d_loss = descrim.update(pred, target)
+        d_pred = descrim(pred)
+        adv_loss = nn.BCEWithLogitsLoss()(d_pred, torch.ones_like(d_pred) * 0.9)
+        loss += adv_loss * 1e-3
             
         optimizer.zero_grad()
         scaler.scale(loss).backward()
@@ -130,11 +138,14 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
 
         log_writer.add_scalar('Loss/Train', loss.item(), i)
         log_writer.add_scalar('PSNR/Train', metric.compute(), i)
+        # log_writer.add_scalar('LR', scheduler.get_last_lr()[0], i)
 
         print(f'---')
         print(f'Iteration {i+1} / {iterations}')
         print(f'    LR: {scheduler.get_last_lr()[0]:.9f}')
-        print(f'        Train Loss: {loss:0.6f}')
+        print(f'    Train Loss: {loss:0.6f}')
+        print(f'        Adversial Loss: {adv_loss:0.6f}')
+        print(f'    Descrim Loss: {d_loss:0.6f}')
         print(f'    Metrics:')
         print(f'        {metric.__class__.__name__}: {metric.compute():.4f}')
         if device == 'cuda':
@@ -152,7 +163,9 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         if i % valid_interval == valid_interval - 1:
             print(f'---')
             print(f'Validating model...')
-            valid_loss = validate_model(model, valid_loader, criterions)
+            valid_loss, pred_ex, target_ex = validate_model(model, valid_loader, criterions, log_writer)
+            grid = torchvision.utils.make_grid([pred_ex, target_ex], nrow=2)
+            log_writer.add_image('Validation Sample', grid, i)
             log_writer.add_scalar('Loss/Valid', valid_loss, i)
             print(f'    Validation Loss: {valid_loss}')
 
@@ -163,16 +176,23 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     return model
 
 
-def validate_model(model, valid_loader, criterions):
+def validate_model(model, valid_loader, criterions, log_writer):
     model.set_eval()
     device = model.curr_device()
     valid_loss = 0.0
+    pred = None
+    target = None
     for valid_batch in valid_loader:
+        input = valid_batch['input'].to(device)
+        target = valid_batch['target'].to(device)
         with torch.no_grad():
-            output = model.predict(valid_batch['input'].to(device))
+            pred = model.predict(input)
         for loss_fn in criterions:
-            valid_loss += loss_fn(output, valid_batch['target'].to(device))
-    return valid_loss / len(valid_loader)
+            valid_loss += loss_fn(pred, target)
+
+    single_pred = pred[0].cpu().clamp(0, 1)
+    single_target = target[0].cpu().clamp(0, 1)
+    return (valid_loss / len(valid_loader)), single_pred, single_target
 
 
 def setup_criterions(options):
@@ -192,6 +212,13 @@ def setup_scheduler(optimizer, options):
                 optimizer=optimizer,
                 T_max=options.get('t_max'),
                 eta_min=options.get('eta_min', 1e-6)
+            )
+        case 'CosineAnnealingWarmRestarts':
+            return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                optimizer=optimizer,
+                T_0=options.get('t_0', 100),
+                T_mult=options.get('t_mult', 1),
+                eta_min=options.get('eta_min', 1e-6),
             )
 
 

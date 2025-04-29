@@ -9,6 +9,7 @@ class NAFNet(nn.Module):
         dw_expand = 2
         ffn_expand = 2
         block_k = 1
+        padding_mode = 'reflect'
 
         if block_opts is not None:
             dw_expand = block_opts.get('dw_expand', dw_expand)
@@ -19,7 +20,8 @@ class NAFNet(nn.Module):
             in_channels = c_in,
             out_channels = width,
             kernel_size = intro_k,
-            padding = (intro_k - 1) // 2
+            padding = (intro_k - 1) // 2,
+            padding_mode = padding_mode
         )
 
         curr_channels = width
@@ -61,6 +63,7 @@ class NAFNet(nn.Module):
                         in_channels = curr_channels, 
                         out_channels = curr_channels * 2, 
                         kernel_size = 1,
+                        bias = False
                     ),
                     nn.PixelShuffle(2)
                 )
@@ -91,7 +94,8 @@ class NAFNet(nn.Module):
                 in_channels = width, 
                 out_channels = c_in * 4, 
                 kernel_size = ending_k, 
-                padding = (ending_k - 1) // 2
+                padding = (ending_k - 1) // 2,
+                padding_mode = padding_mode
             ),
             nn.PixelShuffle(2)
         )
@@ -138,6 +142,7 @@ class NAFNet(nn.Module):
 class NAFNetBlock(nn.Module):
     def __init__(self, c_in, dw_expand=1, ffn_expand=2, kernel_size=1, dropout=0.0):
         super().__init__()
+        padding_mode = 'reflect'
 
         # First stage of block
         self.norm_1 = LayerNorm2d(c_in)
@@ -147,20 +152,23 @@ class NAFNetBlock(nn.Module):
             in_channels = c_in, 
             out_channels = dw_channels,
             kernel_size = kernel_size,
-            padding = (kernel_size - 1) // 2
+            padding = (kernel_size - 1) // 2,
+            padding_mode = padding_mode
         )
         self.conv_2 = nn.Conv2d(
             in_channels = dw_channels, 
             out_channels = dw_channels,
             kernel_size = (kernel_size * 2) + 1,
             padding = kernel_size,
+            padding_mode = padding_mode,
             groups = dw_channels
         )
         self.conv_3 = nn.Conv2d(
             in_channels = dw_channels // 2, 
             out_channels = c_in,
             kernel_size = kernel_size,
-            padding = (kernel_size - 1) // 2
+            padding = (kernel_size - 1) // 2,
+            padding_mode = padding_mode
         )
 
         self.simple_gate = SimpleGate()
@@ -185,7 +193,8 @@ class NAFNetBlock(nn.Module):
             in_channels = c_in, 
             out_channels = ffn_channels,
             kernel_size = kernel_size,
-            padding = (kernel_size - 1) // 2
+            padding = (kernel_size - 1) // 2,
+            padding_mode = padding_mode
         )
         self.conv_5 = nn.Conv2d(
             in_channels = ffn_channels // 2, 

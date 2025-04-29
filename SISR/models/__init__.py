@@ -6,6 +6,7 @@ from .sisr_model import SISRModel, sisr_network_types
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
+from .archs.MNAFD import MNAFDModel
 from .losses import losses
 
 import utils
@@ -23,6 +24,7 @@ __all__ = [
     'PlainNet'
     'Baseline'
     'NAFNet'
+    'MNAFDModel'
 ]
 
 
