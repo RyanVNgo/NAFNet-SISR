@@ -1,5 +1,5 @@
 
-name: SRNAFNet_ablation
+name: Deep-SRNAFNet_V3
 
 model:
   # load_path: ./pretrained_models/NAFNet_w16_u111.pth
@@ -24,7 +24,7 @@ model:
 training:
   iterations: 6400
   valid_interval: 48
-  batch_size: 16
+  batch_size: 32
 
   optimizer:
     type: AdamW

@@ -102,7 +102,7 @@ class SRNAFNet(nn.Module):
 
         # ---- Deep Feature Extraction ----
         curr_channels = curr_channels * 3
-        deep_fe_count = 3
+        deep_fe_count = 1
         self.deep_fe_blocks = nn.ModuleList()
         for _ in range(deep_fe_count):
             self.deep_fe_blocks.append(
@@ -116,7 +116,7 @@ class SRNAFNet(nn.Module):
         curr_channels = curr_channels // 4
 
         # ---- Upscaled Feature Extraction ----
-        ufe_count = 3
+        ufe_count = 1
         self.ufe_blocks = nn.ModuleList()
         for _ in range(ufe_count):
             self.ufe_blocks.append(
