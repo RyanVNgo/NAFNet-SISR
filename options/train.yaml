@@ -13,7 +13,7 @@ model:
     mid_blk_num: 1
     dec_blk_nums: []
 
-    intro_k: 5
+    intro_k: 3
     ending_k: 3
 
     block:
@@ -22,8 +22,8 @@ model:
       kernel_size: 1
 
 training:
-  iterations: 3200
-  valid_interval: 32
+  iterations: 6400
+  valid_interval: 48
   batch_size: 16
 
   optimizer:
@@ -34,7 +34,7 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 3200
+    t_max: 6400
     eta_min: !!float 1e-7
 
   losses:
@@ -50,7 +50,7 @@ datasets:
   validation:  
     data_path: ~/Downloads/DIV2K_valid_HR/
 
-  patch_size: 384
+  patch_size: 128
   workers: 6
 
 

@@ -1,0 +1,32 @@
+network_arch:
+  block:
+    dw_expand: 2
+    ffn_expand: 2
+    kernel_size: 1
+  dec_blk_nums: []
+  enc_blk_nums: []
+  ending_k: 3
+  intro_k: 3
+  mid_blk_num: 1
+  type: SRNAFNet
+  width: 64
+
+# Shallow Feature Extractors
+# small: k=3
+# mid: k=5
+# wide: k=7
+#
+# Deep Feature Extraction
+# Block Count = 3
+# k = 3
+#
+# Upscaled Feature Extraction
+# Block Count = 3
+# k = 3
+#
+#
+# METRICS (on Set5 Butterfly)
+# PSNR: 31.4050
+# SSIM:  0.9599
+#
+
