@@ -16,8 +16,21 @@ network_arch:
   ufe_count: 3
   ufe_k: 3
 
-# METRICS (on Set14 Butterfly)
-# PSNR: 36.3980
-# SSIM:  0.9723
+# --- METRICS
+# Set5
+#   PSNR: 34.6753
+#   SSIM:  0.9443
+#
+# Set14
+#   PSNR: 30.2924
+#   SSIM:  0.8939
+#
+# BSD100
+#   PSNR: 30.0626
+#   SSIM:  0.8913
+#
+# Urban100
+#   PSNR: 27.7237
+#   SSIM:  0.9027
 #
 

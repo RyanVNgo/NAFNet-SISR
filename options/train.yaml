@@ -1,8 +1,8 @@
 
-name: Deep-SRNAFNet_V3
+name: Deep-SRNAFNet_V3-2
 
 model:
-  # load_path: ./pretrained_models/NAFNet_w16_u111.pth
+  load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
   save_path: ./pretrained_models/
   device: 'cuda'
 
@@ -29,13 +29,13 @@ model:
 
 training:
   iterations: 6400
-  valid_interval: 48
-  batch_size: 32
+  valid_interval: 64
+  batch_size: 6
 
   optimizer:
     type: AdamW
     weight_decay: 0.0
-    lr: !!float 1e-3
+    lr: !!float 1e-5
     betas: [0.9, 0.9]
 
   scheduler:
@@ -56,7 +56,7 @@ datasets:
   validation:  
     data_path: ~/Downloads/DIV2K_valid_HR/
 
-  patch_size: 128
+  patch_size: 384
   workers: 6
 
 
