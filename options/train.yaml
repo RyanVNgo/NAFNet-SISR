@@ -16,6 +16,12 @@ model:
     intro_k: 3
     ending_k: 3
 
+    sfe_k_nums: [3, 5, 7]
+    dfe_count: 1
+    dfe_k: 3
+    ufe_count: 1
+    ufe_k: 3
+
     block:
       dw_expand: 2
       ffn_expand: 2

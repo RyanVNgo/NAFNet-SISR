@@ -69,16 +69,14 @@ class SRNAFNet(nn.Module):
 '''
 
 class SRNAFNet(nn.Module):
-    def __init__(self, c_in=3, width=16, mid_blk_num=1, intro_k=3, ending_k=3, block_opts=None):
+    def __init__(self, c_in=3, width=16, sfe_k_nums=[3,5,7], dfe_count=1, dfe_k=2, ufe_count=1, ufe_k=3, intro_k=3, ending_k=3, block_opts=None):
         super().__init__()
         dw_expand = 2
         ffn_expand = 2
-        block_k = 1
 
         if block_opts is not None:
             dw_expand = block_opts.get('dw_expand', dw_expand)
             ffn_expand = block_opts.get('ffn_expand', ffn_expand)
-            block_k = block_opts.get('kernel_size', block_k)
 
         curr_channels = width
 
@@ -92,21 +90,20 @@ class SRNAFNet(nn.Module):
 
         # ---- Shallow Feature Extractors ----
         # Small Scale Extraction
-        self.sfe_small = NAFNetBlock(curr_channels, dw_expand, ffn_expand, 3)
+        self.sfe_small = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[0])
 
         # Mid Scale Extraction
-        self.sfe_mid = NAFNetBlock(curr_channels, dw_expand, ffn_expand, 5)
+        self.sfe_mid = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[1])
 
         # Wide Scale Extraction
-        self.sfe_wide = NAFNetBlock(curr_channels, dw_expand, ffn_expand, 7)
+        self.sfe_wide = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[2])
 
         # ---- Deep Feature Extraction ----
         curr_channels = curr_channels * 3
-        deep_fe_count = 1
         self.deep_fe_blocks = nn.ModuleList()
-        for _ in range(deep_fe_count):
+        for _ in range(dfe_count):
             self.deep_fe_blocks.append(
-                NAFNetBlock(curr_channels, dw_expand, ffn_expand, 3)
+                NAFNetBlock(curr_channels, dw_expand, ffn_expand, dfe_k)
             )
 
         # Deep Feature Upscaling 
@@ -116,11 +113,10 @@ class SRNAFNet(nn.Module):
         curr_channels = curr_channels // 4
 
         # ---- Upscaled Feature Extraction ----
-        ufe_count = 1
         self.ufe_blocks = nn.ModuleList()
         for _ in range(ufe_count):
             self.ufe_blocks.append(
-                NAFNetBlock(curr_channels, dw_expand, ffn_expand, 3)
+                NAFNetBlock(curr_channels, dw_expand, ffn_expand, ufe_k)
             )
 
         # ---- Final Reconstruction ----
