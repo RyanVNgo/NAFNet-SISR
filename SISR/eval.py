@@ -99,7 +99,11 @@ def find_lowres(image_path):
     if name[-2:] == 'HR':
         name = name[:-2] + 'LR'
         filename = name + ext
+    else:
+        return None
+
     lr_path = os.path.join(dir, filename)
+
     if os.path.exists(lr_path):
         return lr_path
     else:
