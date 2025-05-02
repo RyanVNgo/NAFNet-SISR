@@ -61,8 +61,10 @@ def main():
     print(f'    Loss Functions:')
     for loss_fn in criterions:
         print(f'        {loss_fn.__class__.__name__}')
-    print(f'    Training dataset count: {len(dataloaders['train'].dataset)}')
-    print(f'    Validation dataset count: {len(dataloaders['valid'].dataset)}')
+    train_dataset_count = len(dataloaders['train'].dataset)
+    valid_dataset_count = len(dataloaders['valid'].dataset)
+    print(f'    Training dataset count: {train_dataset_count}')
+    print(f'    Validation dataset count: {valid_dataset_count}')
     print(f'    Batch Size: {batch_size}')
     print(f'    Iterations: {iterations}')
     print(f'    Validation Interval: {valid_interval}')
