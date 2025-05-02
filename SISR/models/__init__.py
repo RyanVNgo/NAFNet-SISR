@@ -6,6 +6,7 @@ from .sisr_model import SISRModel, sisr_network_types
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
+from .archs.SRNAFNet import SRNAFNet
 from .losses import losses
 
 import utils
@@ -23,6 +24,7 @@ __all__ = [
     'PlainNet'
     'Baseline'
     'NAFNet'
+    'SRNAFNet'
 ]
 
 
@@ -52,6 +54,12 @@ def create_sisr_model(options):
     intro_k = network_options.get('intro_k', 3)
     ending_k = network_options.get('ending_k', 3)
     block_opts = network_options.get('block', {})
+
+    sfe_k_nums = network_options.get('sfe_k_nums', [3, 5, 7]) 
+    dfe_count = network_options.get('dfe_count', 1) 
+    dfe_k = network_options.get('dfe_k', 3) 
+    ufe_count = network_options.get('ufe_count', 1) 
+    ufe_k = network_options.get('ufe_k', 3) 
 
     device = options.get('device', 'cpu')
     if not torch.cuda.is_available():
@@ -88,6 +96,19 @@ def create_sisr_model(options):
                 mid_blk_num=mid_blk_num,
                 enc_blk_nums=enc_blk_nums,
                 dec_blk_nums=dec_blk_nums,
+                intro_k=intro_k,
+                ending_k=ending_k,
+                block_opts=block_opts
+            )
+        case 'SRNAFNet':
+            net = SRNAFNet(
+                c_in=c_in,
+                width=width,
+                sfe_k_nums=sfe_k_nums,
+                dfe_count=dfe_count,
+                dfe_k=dfe_k,
+                ufe_count=ufe_count,
+                ufe_k=ufe_k,
                 intro_k=intro_k,
                 ending_k=ending_k,
                 block_opts=block_opts

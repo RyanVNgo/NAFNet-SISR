@@ -61,6 +61,7 @@ class NAFNet(nn.Module):
                         in_channels = curr_channels, 
                         out_channels = curr_channels * 2, 
                         kernel_size = 1,
+                        bias = False
                     ),
                     nn.PixelShuffle(2)
                 )
@@ -136,7 +137,7 @@ class NAFNet(nn.Module):
 
 
 class NAFNetBlock(nn.Module):
-    def __init__(self, c_in, dw_expand=1, ffn_expand=2, kernel_size=1, dropout=0.0):
+    def __init__(self, c_in, dw_expand=2, ffn_expand=2, kernel_size=1, dropout=0.0):
         super().__init__()
 
         # First stage of block

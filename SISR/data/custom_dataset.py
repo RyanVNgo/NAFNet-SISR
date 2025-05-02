@@ -27,7 +27,10 @@ class SISRDataset(Dataset):
         else:
             hr = TF.center_crop(img, (self.crop, self.crop))
 
+        degress = 90 * random.randint(0, 3)
         lr = hr.resize((self.crop // self.scale,) * 2, Image.BICUBIC)
+        lr = TF.rotate(lr, angle=degress)
+        hr = TF.rotate(hr, angle=degress)
         return {
             "input": TF.to_tensor(lr),
             "target": TF.to_tensor(hr)

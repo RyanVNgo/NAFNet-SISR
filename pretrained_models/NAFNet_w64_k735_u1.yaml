@@ -11,4 +11,21 @@ network_arch:
   type: NAFNet
   width: 64
 
-# PSNR 29.90
+# --- METRICS
+# Set5
+#   PSNR: 34.1204
+#   SSIM:  0.9403
+#
+# Set14
+#   PSNR: 29.9749
+#   SSIM:  0.8899
+#
+# BSD100
+#   PSNR: 29.7957
+#   SSIM:  0.8875
+#
+# Urban100
+#   PSNR: 27.1369
+#   SSIM:  0.8910
+#
+
