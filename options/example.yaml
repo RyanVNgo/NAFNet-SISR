@@ -1,8 +1,8 @@
 
-# READ
+# --------------- ! READ ! --------------- 
 # This file is an example config file for model training. Ensure all necessary
 # parameters (marked by !REQUIRED!) are set and you ensure strict typing as 
-# configuration is case sensitive and exact. All optional parameeters are shown
+# configuration is case sensitive and exact. All optional parameters are shown
 # with their default values.
 
 
@@ -26,9 +26,21 @@ model:
   save_path: ./pretrained_models/
 
   # (!REQUIRED!) Type of network 
-  # Supported types: PlainNet, Baseline, NAFNet
+  # Supported types: PlainNet, Baseline, NAFNet, SRNAFNet
   type: NAFNet
 
+
+  # --------------- ! READ ! --------------- 
+  # This section defines the configuration for the model type but it is not guaranteed
+  # to match the configuration at training. If values defined here are invalid, then
+  # the script will setup default parameters. These adjusted values are properly set
+  # in the saved model config files so there is no worry for error, just a potentially
+  # unintentional setup.
+  #
+  # Also, not every parameter here has a relation to every model type. More specifically,
+  # the sfe, dfe, and ufe only apply to SRNAFNet. SRNAFNet also does not use the enc_blk_nums,
+  # mid_blk_num, or dec_blk_nums parameters. All others, namely width, intro_k, ending_k,
+  # and block are required by all models.
   network_arch:
     # Initial channel width expansion
     # Current models perform an initial convolution to expand the channel
@@ -50,6 +62,23 @@ model:
     # left-to-right. Ensure the number of decoding stages (len(dec_blk_nums))
     # matches the number of encoding stages.
     dec_blk_nums: [1]
+
+    # Kernel sizes for the Shallow Feature Extractors in SRNAFNet.
+    # Ensure that if you change this, it has 3 numbers exactly, more or less will not
+    # work with SRNAFNet (at least for right now). I suggest leaving this as is.
+    sfe_k_nums: [3, 5, 7]
+
+    # Number of Deep Feature Extraction Blocks
+    dfe_count: 1
+    
+    # Kernel size of Deep Feature Extraction Blocks
+    dfe_k: 3
+
+    # Number of Upscaled Feature Extraction Blocks
+    ufe_count: 1
+    
+    # Kernel size of Upscaled Feature Extraction Blocks
+    ufe_k: 3
 
     # Kernel size of intro and ending 
     intro_k: 3
