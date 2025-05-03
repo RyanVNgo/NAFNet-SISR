@@ -7,6 +7,7 @@ from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
 from .archs.SRNAFNet import SRNAFNet
+from .archs.MNAFCD import MNAFCDModel
 from .losses import losses
 
 import utils
@@ -25,6 +26,7 @@ __all__ = [
     'Baseline'
     'NAFNet'
     'SRNAFNet'
+    'MNAFCDModel'
 ]
 
 
@@ -121,6 +123,11 @@ def create_sisr_model(options):
             enc_blk_nums = enc_blk_nums,
             mid_blk_num = mid_blk_num,
             dec_blk_nums = dec_blk_nums,
+            sfe_k_nums=sfe_k_nums,
+            dfe_count=dfe_count,
+            dfe_k=dfe_k,
+            ufe_count=ufe_count,
+            ufe_k=ufe_k,
             intro_k = intro_k,
             ending_k = ending_k,
             block = dict(

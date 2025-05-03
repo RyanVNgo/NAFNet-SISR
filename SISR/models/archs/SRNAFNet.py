@@ -24,6 +24,14 @@ class SRNAFNet(nn.Module):
         )
 
         # ---- Shallow Feature Extractors ----
+        '''
+        self.shallow_feature_extractors = nn.ModuleList()
+        for k in range(len(sfe_k_nums)):
+            self.shallow_feature_extractors.append(
+                NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[k])
+            )
+
+        '''
         # Small Scale Extraction
         self.sfe_small = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[0])
 
@@ -34,7 +42,7 @@ class SRNAFNet(nn.Module):
         self.sfe_wide = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[2])
 
         # ---- Deep Feature Extraction ----
-        curr_channels = curr_channels * 3
+        curr_channels = curr_channels * len(sfe_k_nums)
         self.deep_fe_blocks = nn.ModuleList()
         for _ in range(dfe_count):
             self.deep_fe_blocks.append(
@@ -74,6 +82,13 @@ class SRNAFNet(nn.Module):
         input = self.intro(input)
 
         # SFE
+        '''
+        sfe_results = []
+        for fe in self.shallow_feature_extractors:
+            sfe_results.append(fe(input))
+        concat = torch.cat(sfe_results, dim=1)
+        
+        '''
         small_component = self.sfe_small(input)
         mid_componenet = self.sfe_mid(input)
         wide_component = self.sfe_wide(input)
@@ -87,10 +102,12 @@ class SRNAFNet(nn.Module):
 
         # DFU
         input = self.deep_fe_post_upscale(input)
+        skip = input
 
         # UFE
         for ufe_block in self.ufe_blocks:
             input = ufe_block(input)
+        input = input + skip
 
         # Final Reconstruction
         input = self.final_reconstruction(input)

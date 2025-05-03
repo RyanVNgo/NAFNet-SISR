@@ -1,5 +1,5 @@
 
-name: Deep-SRNAFNet_Test
+name: Deep-SRNAFGAN_V3
 
 model:
   # load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
@@ -8,7 +8,7 @@ model:
 
   network_arch:
     type: SRNAFNet
-    width: 32
+    width: 64
     enc_blk_nums: []
     mid_blk_num: 1
     dec_blk_nums: []
@@ -17,9 +17,9 @@ model:
     ending_k: 3
 
     sfe_k_nums: [3, 5, 7]
-    dfe_count: 1
+    dfe_count: 3
     dfe_k: 3
-    ufe_count: 1
+    ufe_count: 3
     ufe_k: 3
 
     block:
@@ -28,30 +28,30 @@ model:
       kernel_size: 1
 
 training:
-  iterations: 3200
+  iterations: 6400
   valid_interval: 64
   batch_size: 16
 
   optimizer:
     type: AdamW
-    weight_decay: 0.0
-    lr: !!float 1e-3
+    weight_decay: 0.01
+    lr: !!float 1e-4
     betas: [0.9, 0.9]
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 3200
+    t_max: 6400
     eta_min: !!float 1e-6
 
   losses:
     # mseloss:
-    #   weight: 1.0
+    #   weight: 0.95
     l1loss:
       weight: 1.0
 
 datasets:
   training:
-    data_path: ~/Downloads/DIV2K_train_HR/
+    data_path: ~/Downloads/DF2K/
     
   validation:  
     data_path: ~/Downloads/DIV2K_valid_HR/

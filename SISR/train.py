@@ -98,6 +98,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     scaler = GradScaler()
     metric = PeakSignalNoiseRatio(data_range=1.0, device=device)
 
+    descrim = models.MNAFCDModel(iterations, device)
+
     for i in range(iterations):
         iter_start_time = time.time()
         try:
@@ -107,6 +109,7 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             train_batch = next(train_iter)
 
         input = train_batch['input'].to(device)
+        input = input + torch.normal(mean=0.0, std=(1e-3 ** 0.5), size=input.shape).to(device)
         target = train_batch['target'].to(device)
 
         model.set_train()
@@ -116,6 +119,10 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             for loss_fn in criterions:
                 loss += loss_fn(pred, target)
             
+        d_loss = descrim.update(pred, target)
+        adv_loss = descrim.adversarial_loss(pred, target)
+        loss += adv_loss * 1e-3
+
         optimizer.zero_grad()
         scaler.scale(loss).backward()
         nn.utils.clip_grad_norm_(model.get_parameters(), 1.0)
@@ -130,6 +137,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         metric.reset()
         metric.update(pred, target)
 
+        log_writer.add_scalar('Descrim/D_Loss', d_loss.item(), i)
+        log_writer.add_scalar('Descrim/Adv_Loss', adv_loss.item(), i)
         log_writer.add_scalar('Loss/Train', loss.item(), i)
         log_writer.add_scalar('PSNR/Train', metric.compute(), i)
 
