@@ -11,12 +11,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.amp import GradScaler, autocast
-from torcheval.metrics import PeakSignalNoiseRatio
 from torch.utils.tensorboard import SummaryWriter
 
 import utils
 import models
 import data
+import metrics
 
 
 def main():
@@ -96,9 +96,6 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     valid_loader = dataloaders['valid']
     train_iter = iter(train_loader)
     scaler = GradScaler()
-    metric = PeakSignalNoiseRatio(data_range=1.0, device=device)
-
-    descrim = models.MNAFCDModel(iterations, device)
 
     for i in range(iterations):
         iter_start_time = time.time()
@@ -109,7 +106,6 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             train_batch = next(train_iter)
 
         input = train_batch['input'].to(device)
-        input = input + torch.normal(mean=0.0, std=(1e-3 ** 0.5), size=input.shape).to(device)
         target = train_batch['target'].to(device)
 
         model.set_train()
@@ -118,10 +114,6 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             loss = 0.0
             for loss_fn in criterions:
                 loss += loss_fn(pred, target)
-            
-        d_loss = descrim.update(pred, target)
-        adv_loss = descrim.adversarial_loss(pred, target)
-        loss += adv_loss * 1e-3
 
         optimizer.zero_grad()
         scaler.scale(loss).backward()
@@ -134,20 +126,17 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         total_elapsed_time = time.time() - start_time
         time_window.append(iter_elapsed_time)
 
-        metric.reset()
-        metric.update(pred, target)
+        psnr = metrics.PSNR_Tensor(pred, target, device)
 
-        log_writer.add_scalar('Descrim/D_Loss', d_loss.item(), i)
-        log_writer.add_scalar('Descrim/Adv_Loss', adv_loss.item(), i)
         log_writer.add_scalar('Loss/Train', loss.item(), i)
-        log_writer.add_scalar('PSNR/Train', metric.compute(), i)
+        log_writer.add_scalar('PSNR/Train', psnr, i)
 
         print(f'---')
         print(f'Iteration {i+1} / {iterations}')
         print(f'    LR: {scheduler.get_last_lr()[0]:.9f}')
         print(f'        Train Loss: {loss:0.6f}')
         print(f'    Metrics:')
-        print(f'        {metric.__class__.__name__}: {metric.compute():.4f}')
+        print(f'        PSNR: {psnr:.4f}')
         if device == 'cuda':
             free, total = torch.cuda.mem_get_info(device)
             print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
@@ -163,8 +152,10 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         if i % valid_interval == valid_interval - 1:
             print(f'---')
             print(f'Validating model...')
-            valid_loss, img_ex_grid = validate_model(model, valid_loader, criterions)
+            valid_loss, img_ex_grid, v_psnr = validate_model(model, valid_loader, criterions)
             print(f'    Validation Loss: {valid_loss}')
+            print(f'    PSNR: {v_psnr:0.4f}')
+            log_writer.add_scalar('PSNR/Valid', v_psnr, i)
             log_writer.add_scalar('Loss/Valid', valid_loss, i)
             log_writer.add_image('LR_SR_HR', img_ex_grid, i)
 
@@ -179,18 +170,18 @@ def validate_model(model, valid_loader, criterions):
     model.set_eval()
     device = model.curr_device()
     valid_loss = 0.0
-    input = None
-    pred = None
-    target = None
+    input, pred, target = None, None, None
+    psnrs = []
     for valid_batch in valid_loader:
         input = valid_batch['input'].to(device)
         target = valid_batch['target'].to(device)
         with torch.no_grad():
             pred = model.predict(input)
+            psnrs.append(metrics.PSNR_Tensor(pred, target))
         for loss_fn in criterions:
             valid_loss += loss_fn(pred, target)
     ex_grid = prepare_image_preview(input[0], pred[0], target[0])
-    return (valid_loss / len(valid_loader)), ex_grid
+    return (valid_loss / len(valid_loader)), ex_grid, (sum(psnrs) / len(psnrs))
 
 
 def prepare_image_preview(lr_img, sr_img, hr_img):

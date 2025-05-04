@@ -6,8 +6,7 @@ from .sisr_model import SISRModel, sisr_network_types
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
-from .archs.SRNAFNet import SRNAFNet
-from .archs.MNAFCD import MNAFCDModel
+from .archs.SRNAFNet import SRNAFNet, nafnet_weight_init
 from .losses import losses
 
 import utils
@@ -26,7 +25,6 @@ __all__ = [
     'Baseline'
     'NAFNet'
     'SRNAFNet'
-    'MNAFCDModel'
 ]
 
 
@@ -136,6 +134,7 @@ def create_sisr_model(options):
         )
     )
 
+    net.apply(lambda m: nafnet_weight_init(m, scale=0.1))
     model = SISRModel(net, config, device)
     if load_path is not None:
         model.load_model(load_path)
