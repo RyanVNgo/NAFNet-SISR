@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class SRNAFNet(nn.Module):
-    def __init__(self, c_in=3, width=16, sfe_k_nums=[3,5,7], dfe_count=1, dfe_k=2, ufe_count=1, ufe_k=3, intro_k=3, ending_k=3, block_opts=None):
+    def __init__(self, c_in=3, width=16, sfe_k_nums=[3,5,7], dfe_count=1, dfe_k=3, ufe_count=1, ufe_k=3, intro_k=3, ending_k=3, block_opts=None):
         super().__init__()
         dw_expand = 2
         ffn_expand = 2
@@ -15,7 +15,7 @@ class SRNAFNet(nn.Module):
 
         curr_channels = width
 
-        # ---- Shallow Feature Extraction Preparation ----
+        # ---- Intro (Initial Channel Expansion) ----
         self.intro = nn.Conv2d(
             in_channels = c_in,
             out_channels = curr_channels,
@@ -24,44 +24,33 @@ class SRNAFNet(nn.Module):
         )
 
         # ---- Shallow Feature Extractors ----
-        # Small Scale Extraction
-        self.sfe_small = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[0])
-
-        # Mid Scale Extraction
-        self.sfe_mid = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[1])
-
-        # Wide Scale Extraction
-        self.sfe_wide = NAFNetBlock(curr_channels, dw_expand, ffn_expand, sfe_k_nums[2])
+        self.sfe_paths = nn.ModuleList()
+        for k in sfe_k_nums:
+            self.sfe_paths.append(
+                NAFNetBlock(curr_channels, dw_expand, ffn_expand, k)
+            )
 
         # ---- Deep Feature Extraction ----
         curr_channels = curr_channels * len(sfe_k_nums)
-        self.deep_fe_blocks = nn.ModuleList()
-        for _ in range(dfe_count):
-            self.deep_fe_blocks.append(
-                NAFNetBlock(curr_channels, dw_expand, ffn_expand, dfe_k)
-            )
-
-        # Deep Feature Upscaling 
-        self.deep_fe_post_upscale = nn.Sequential(
-            nn.PixelShuffle(2)
+        self.dfe_sequence = nn.Sequential(
+            *[NAFNetBlock(curr_channels, dw_expand, ffn_expand, dfe_k) for _ in range(dfe_count)]
         )
+
+        # --- Upscaling (2x) ----
+        self.upscale = nn.PixelShuffle(2)
         curr_channels = curr_channels // 4
 
         # ---- Upscaled Feature Extraction ----
-        self.ufe_blocks = nn.ModuleList()
-        for _ in range(ufe_count):
-            self.ufe_blocks.append(
-                NAFNetBlock(curr_channels, dw_expand, ffn_expand, ufe_k)
-            )
+        self.ufe_sequence = nn.Sequential(
+            *[NAFNetBlock(curr_channels, dw_expand, ffn_expand, ufe_k) for _ in range(ufe_count)]
+        )
 
-        # ---- Final Reconstruction ----
-        self.final_reconstruction = nn.Sequential(
-            nn.Conv2d(
-                curr_channels, 
-                3, 
-                kernel_size=ending_k,
-                padding=(ending_k - 1) // 2,
-            )
+        # ---- Ending ----
+        self.ending = nn.Conv2d(
+            in_channels = curr_channels,
+            out_channels = c_in,
+            kernel_size = ending_k,
+            padding = (ending_k - 1) // 2
         )
 
         # Additional Stuff
@@ -71,30 +60,28 @@ class SRNAFNet(nn.Module):
     def forward(self, input):
         B, C, H, W = input.shape
         input = self.conform_image_size(input)
+
+        # ---- Intro (Initial Channel Expansion) ----
         input = self.intro(input)
 
-        # SFE
-        small_component = self.sfe_small(input)
-        mid_componenet = self.sfe_mid(input)
-        wide_component = self.sfe_wide(input)
-        concat = torch.cat((small_component, mid_componenet, wide_component), dim=1)
+        # ---- Shallow Feature Extraction ----
+        sfe_extracts = []
+        for sfe in self.sfe_paths:
+            sfe_extracts.append(sfe(input))
+        sfe_concat = torch.concat(sfe_extracts, dim=1)
 
-        # DFE
-        input = concat
-        for dfe_block in self.deep_fe_blocks:
-            input = dfe_block(input)
-        input = input + concat
+        # ---- Deep Feature Extraction ----
+        input = self.dfe_sequence(sfe_concat)
 
-        # DFU
-        input = self.deep_fe_post_upscale(input)
-        skip = input
+        # ---- Upscaling (2x) ----
+        input = input + sfe_concat
+        input = self.upscale(input)
 
-        # UFE
-        for ufe_block in self.ufe_blocks:
-            input = ufe_block(input)
+        # ---- Upscaled Feature Extraction ----
+        input = self.ufe_sequence(input)
 
-        # Final Reconstruction
-        input = self.final_reconstruction(input)
+        # ---- Ending ----
+        input = self.ending(input)
 
         return input
 
@@ -162,6 +149,10 @@ class NAFNetBlock(nn.Module):
             padding = (kernel_size - 1) // 2
         )
 
+        scalar_init = 1e-2
+        self.beta = nn.Parameter(torch.full((1, c_in, 1, 1), scalar_init), requires_grad=True)
+        self.gamma = nn.Parameter(torch.full((1, c_in, 1, 1), scalar_init), requires_grad=True)
+
     def forward(self, input):
         x = self.norm_1(input)
         x = self.conv_1(x)
@@ -170,14 +161,14 @@ class NAFNetBlock(nn.Module):
         x = x * self.sca(x)
         x = self.conv_3(x)
 
-        y = input + x
+        y = input + x * self.beta
 
         x = self.norm_2(y)
         x = self.conv_4(x)
         x = self.simple_gate(x)
         x = self.conv_5(x)
 
-        return y + x
+        return y + x * self.gamma
 
 
 class LayerNormFunction(torch.autograd.Function):

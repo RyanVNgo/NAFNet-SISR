@@ -33,3 +33,12 @@ class PSNRLoss(nn.Module):
         mse = torch.mean((pred - target) ** 2) + 1e-8
         return self.weight * -20 * torch.log10(1.0 / torch.sqrt(mse))
 
+
+class HuberLoss(nn.Module):
+    def __init__(self, weight=1.0):
+        super(HuberLoss, self).__init__()
+        self.weight = weight
+
+    def forward(self, pred, target):
+        return self.weight * nn.functional.huber_loss(pred, target)
+

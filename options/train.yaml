@@ -1,8 +1,8 @@
 
-name: SRNAFNet_Test
+name: SRNAFNet_V6
 
 model:
-  # load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
+  # load_path: ./pretrained_models/SRNAFNet_V5.pth
   save_path: ./pretrained_models/
   device: 'cuda'
 
@@ -17,36 +17,34 @@ model:
     ending_k: 3
 
     sfe_k_nums: [3, 5, 7]
-    dfe_count: 1
+    dfe_count: 3
     dfe_k: 3
-    ufe_count: 1
+    ufe_count: 3
     ufe_k: 3
 
     block:
-      dw_expand: 3
+      dw_expand: 2
       ffn_expand: 2
-      kernel_size: 3
+      kernel_size: 1
 
 training:
-  iterations: 6400
+  iterations: 20000
   valid_interval: 64
   batch_size: 16
 
   optimizer:
     type: AdamW
-    weight_decay: 0.01
+    weight_decay: 0.0
     lr: !!float 1e-3
     betas: [0.9, 0.9]
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 6400
-    eta_min: !!float 1e-6
+    t_max: 20000 
+    eta_min: !!float 1e-7
 
   losses:
-    # mseloss:
-    #   weight: 0.95
-    l1loss:
+    mseloss:
       weight: 1.0
 
 datasets:
@@ -57,6 +55,7 @@ datasets:
     data_path: ~/Downloads/DIV2K_valid_HR/
 
   patch_size: 128
+  scale: 2
   workers: 6
 
 

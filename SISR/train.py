@@ -140,6 +140,9 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         if device == 'cuda':
             free, total = torch.cuda.mem_get_info(device)
             print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
+
+        print_scalars(model.get_raw_modules())
+
         print(f'    Iteration Time: {iter_elapsed_time:2f}s')
         print(f'    Total elapsed Time: {total_elapsed_time:2f}s')
 
@@ -166,6 +169,26 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     return model
 
 
+def print_scalars(modules):
+    for module in modules:
+        p = False
+        beta_val = None
+        gamma_val = None
+        if hasattr(module, 'beta'):
+            p = True
+            beta_val = module.beta.abs().mean().item()
+        if hasattr(module, 'gamma'):
+            p = True
+            gamma_val = module.gamma.abs().mean().item()
+
+        if p:
+            print(f'    {module.__class__.__name__}:')
+            if beta_val:
+                print(f'        Beta: {beta_val : 0.4f}')
+            if gamma_val:
+                print(f'        Beta: {gamma_val : 0.4f}')
+
+
 def validate_model(model, valid_loader, criterions):
     model.set_eval()
     device = model.curr_device()
@@ -185,12 +208,10 @@ def validate_model(model, valid_loader, criterions):
 
 
 def prepare_image_preview(lr_img, sr_img, hr_img):
-    sf = 1
-    if hr_img.shape[-1] < 256:
-        sf = 2
-    hr_img = nn.functional.interpolate(hr_img.unsqueeze(0), scale_factor=sf).squeeze(0)
-    sr_img = nn.functional.interpolate(sr_img.unsqueeze(0), scale_factor=sf).squeeze(0)
-    lr_img = nn.functional.interpolate(lr_img.unsqueeze(0), scale_factor=sf * 2).squeeze(0)
+    hr_img = hr_img
+    sr_img = sr_img
+    sf = hr_img.shape[-1] / lr_img.shape[-1]
+    lr_img = nn.functional.interpolate(lr_img.unsqueeze(0), scale_factor=sf).squeeze(0)
     return torch.cat((lr_img, sr_img, hr_img), dim=2)
 
 
