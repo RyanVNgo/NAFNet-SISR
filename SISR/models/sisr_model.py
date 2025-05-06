@@ -34,9 +34,6 @@ class SISRModel():
             modules.append(module)
         return modules
 
-    def get_raw_modules(self):
-        return self.net.modules()
-
     def to_device(self, device):
         self.net.to(device)
 

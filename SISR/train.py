@@ -126,7 +126,7 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         total_elapsed_time = time.time() - start_time
         time_window.append(iter_elapsed_time)
 
-        psnr = metrics.PSNR_Tensor(pred, target, device)
+        psnr = metrics.PSNR_Tensor(pred, target)
 
         log_writer.add_scalar('Loss/Train', loss.item(), i)
         log_writer.add_scalar('PSNR/Train', psnr, i)
@@ -140,9 +140,6 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
         if device == 'cuda':
             free, total = torch.cuda.mem_get_info(device)
             print(f'    Memory Usage: {(total - free) / (1024**2):.2f} MB / {total / (1025**2):.2f} MB')
-
-        print_scalars(model.get_raw_modules())
-
         print(f'    Iteration Time: {iter_elapsed_time:2f}s')
         print(f'    Total elapsed Time: {total_elapsed_time:2f}s')
 
@@ -167,26 +164,6 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     print(f'    Total Training Time: {elapsed_time:.2f}s')
 
     return model
-
-
-def print_scalars(modules):
-    for module in modules:
-        p = False
-        beta_val = None
-        gamma_val = None
-        if hasattr(module, 'beta'):
-            p = True
-            beta_val = module.beta.abs().mean().item()
-        if hasattr(module, 'gamma'):
-            p = True
-            gamma_val = module.gamma.abs().mean().item()
-
-        if p:
-            print(f'    {module.__class__.__name__}:')
-            if beta_val:
-                print(f'        Beta: {beta_val : 0.4f}')
-            if gamma_val:
-                print(f'        Beta: {gamma_val : 0.4f}')
 
 
 def validate_model(model, valid_loader, criterions):

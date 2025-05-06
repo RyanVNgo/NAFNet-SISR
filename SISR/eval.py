@@ -76,7 +76,7 @@ def main():
         sr_tensor = (sr_tensor * 255).byte()
         sr_image = transforms.functional.to_pil_image(sr_tensor)
 
-        psnr = metrics.PSNR(np.array(sr_image), np.array(hr_image))
+        psnr = metrics.PSNR(np.array(sr_image), np.array(hr_image), 255.0)
         ssim = metrics.SSIM(np.array(sr_image), np.array(hr_image))
         print(f'        PSNR: {psnr:.4f} | SSIM: {ssim:.4f}')
         psnr_list.append(psnr)
