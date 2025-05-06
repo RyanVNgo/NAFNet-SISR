@@ -1,14 +1,14 @@
 
-name: Deep-SRNAFNet_Test
+name: SRNAFNet
 
 model:
-  # load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
+  # load_path: ./pretrained_models/SRNAFNet_V5.pth
   save_path: ./pretrained_models/
   device: 'cuda'
 
   network_arch:
     type: SRNAFNet
-    width: 32
+    width: 64
     enc_blk_nums: []
     mid_blk_num: 1
     dec_blk_nums: []
@@ -28,7 +28,7 @@ model:
       kernel_size: 1
 
 training:
-  iterations: 3200
+  iterations: 20000
   valid_interval: 64
   batch_size: 16
 
@@ -40,23 +40,21 @@ training:
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 3200
-    eta_min: !!float 1e-6
+    t_max: 20000 
+    eta_min: !!float 1e-7
 
   losses:
-    # mseloss:
-    #   weight: 1.0
     l1loss:
       weight: 1.0
 
 datasets:
   training:
-    data_path: ~/Downloads/DIV2K_train_HR/
+    data_path: ~/Downloads/DF2K/
     
   validation:  
     data_path: ~/Downloads/DIV2K_valid_HR/
 
   patch_size: 128
+  scale: 2
   workers: 6
-
 

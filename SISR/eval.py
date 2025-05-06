@@ -40,6 +40,9 @@ def main():
         print(f'Dataset path does not exist. Exiting.')
         return
 
+    scaling_factor = args.scaling_factor
+    if scaling_factor == None:
+        scaling_factor = 2
     
     print(f'Initializing model')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -62,13 +65,8 @@ def main():
     for idx, image_path in enumerate(image_paths):
         print(f'    Evaluating Image [{idx+1}]: {image_path}')
         hr_image = Image.open(image_path).convert('RGB')
-        lr_path = find_lowres(image_path)
-        lr_image = downscale_image(hr_image)
-        if lr_path is not None:
-            print(f'    LR Pair Found: {lr_path}')
-            lr_image = Image.open(lr_path).convert('RGB')
-        else:
-            lr_image = downscale_image(hr_image)
+        hr_image = crop_to_scale(hr_image, scaling_factor)
+        lr_image = downscale_image(hr_image, scaling_factor)
         
         lr_tensor = to_tensor(lr_image).unsqueeze(0).to(device)
         with torch.no_grad():
@@ -78,7 +76,7 @@ def main():
         sr_tensor = (sr_tensor * 255).byte()
         sr_image = transforms.functional.to_pil_image(sr_tensor)
 
-        psnr = metrics.PSNR(np.array(sr_image), np.array(hr_image))
+        psnr = metrics.PSNR(np.array(sr_image), np.array(hr_image), 255.0)
         ssim = metrics.SSIM(np.array(sr_image), np.array(hr_image))
         print(f'        PSNR: {psnr:.4f} | SSIM: {ssim:.4f}')
         psnr_list.append(psnr)
@@ -92,27 +90,20 @@ def main():
     return
 
 
-def find_lowres(image_path):
-    dir = os.path.dirname(image_path)
-    filename = os.path.basename(image_path)
-    name, ext = os.path.splitext(filename)
-    if name[-2:] == 'HR':
-        name = name[:-2] + 'LR'
-        filename = name + ext
-    else:
-        return None
-
-    lr_path = os.path.join(dir, filename)
-
-    if os.path.exists(lr_path):
-        return lr_path
-    else:
-        return None
-
-
-def downscale_image(image):
+def crop_to_scale(image, scale):
     width, height = image.size
-    return image.resize((width // 2, height // 2), Image.BICUBIC)
+    new_width = (width // scale) * scale
+    new_height = (height // scale) * scale
+    left = (width - new_width) // 2
+    top = (height - new_height) // 2
+    right = left + new_width
+    bottom = top + new_height
+    return image.crop((left, top, right, bottom))
+
+
+def downscale_image(image, factor):
+    width, height = image.size
+    return image.resize((width // factor, height // factor), Image.BICUBIC)
 
 
 def valid_image_paths_in_directory(dir_path):
@@ -134,6 +125,7 @@ def get_argparser():
     parser.add_argument('-m', dest='model_path', type=str, required=True, help='Path to model .pth file')
     parser.add_argument('-c', dest='yaml_path', type=str, required=False, help='Path to model .yaml file')
     parser.add_argument('-d', dest='dataset_path', type=str, required=True, help='Path to dataset directory')
+    parser.add_argument('-f', dest='scaling_factor', type=int, required=True, help='Scaling factor')
     return parser
 
 

@@ -222,3 +222,14 @@ class SimpleGate(nn.Module):
         return x1 * x2
 
 
+def nafnet_weight_init(module, scale=0.1):
+    if isinstance(module, nn.Conv2d):
+        nn.init.kaiming_normal_(module.weight, mode='fan_in', nonlinearity='relu')
+        module.weight.data *= scale
+        if module.bias is not None:
+            nn.init.zeros_(module.bias)
+    elif isinstance(module, LayerNorm2d):
+        module.weight.data.fill_(1.0)
+        module.bias.data.zero_()
+
+

@@ -6,7 +6,7 @@ from .sisr_model import SISRModel, sisr_network_types
 from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
-from .archs.SRNAFNet import SRNAFNet
+from .archs.SRNAFNet import SRNAFNet, nafnet_weight_init
 from .losses import losses
 
 import utils
@@ -121,6 +121,11 @@ def create_sisr_model(options):
             enc_blk_nums = enc_blk_nums,
             mid_blk_num = mid_blk_num,
             dec_blk_nums = dec_blk_nums,
+            sfe_k_nums=sfe_k_nums,
+            dfe_count=dfe_count,
+            dfe_k=dfe_k,
+            ufe_count=ufe_count,
+            ufe_k=ufe_k,
             intro_k = intro_k,
             ending_k = ending_k,
             block = dict(
@@ -129,6 +134,7 @@ def create_sisr_model(options):
         )
     )
 
+    # net.apply(lambda m: nafnet_weight_init(m, scale=0.1))
     model = SISRModel(net, config, device)
     if load_path is not None:
         model.load_model(load_path)
@@ -144,6 +150,8 @@ def create_loss(type, options):
             return losses.L1Loss(weight)
         case 'mseloss':
             return losses.MSELoss(weight)
+        case 'huberloss':
+            return losses.HuberLoss(weight)
     return None
 
 

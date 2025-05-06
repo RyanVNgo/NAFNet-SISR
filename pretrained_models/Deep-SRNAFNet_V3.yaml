@@ -18,19 +18,19 @@ network_arch:
 
 # --- METRICS
 # Set5
-#   PSNR: 34.8528
+#   PSNR: 35.6283
 #   SSIM:  0.9452
 #
 # Set14
-#   PSNR: 30.3637
+#   PSNR: 31.0113
 #   SSIM:  0.8948
 #
 # BSD100
-#   PSNR: 30.1454
+#   PSNR: 30.1814
 #   SSIM:  0.8924
 #
 # Urban100
-#   PSNR: 27.8983
-#   SSIM:  0.9053
+#   PSNR: 28.1327
+#   SSIM:  0.9047
 #
 
