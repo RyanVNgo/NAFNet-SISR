@@ -134,14 +134,14 @@ def create_sisr_model(options):
         )
     )
 
-    # net.apply(lambda m: nafnet_weight_init(m, scale=0.1))
+    net.apply(lambda m: nafnet_weight_init(m, scale=0.1))
     model = SISRModel(net, config, device)
     if load_path is not None:
         model.load_model(load_path)
     return model
 
 
-def create_loss(type, options):
+def create_loss(type, options, device):
     weight = options.get('weight', 1.0)
     match type:
         case 'psnrloss':
@@ -152,6 +152,8 @@ def create_loss(type, options):
             return losses.MSELoss(weight)
         case 'huberloss':
             return losses.HuberLoss(weight)
+        case 'vggloss':
+            return losses.VGGLoss(conv_index='54', weight=weight, device=device)
     return None
 
 

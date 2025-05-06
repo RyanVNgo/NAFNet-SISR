@@ -43,7 +43,7 @@ def main():
     scheduler = setup_scheduler(optimizer, training_options.get('scheduler'))
     iterations = training_options.get('iterations', 1)
     print('Setting up criterions...')
-    criterions = setup_criterions(training_options.get('losses'))
+    criterions = setup_criterions(training_options.get('losses'), model.curr_device())
     batch_size = training_options.get('batch_size', 16)
     valid_interval = training_options.get('valid_interval', 32)
 
@@ -192,10 +192,10 @@ def prepare_image_preview(lr_img, sr_img, hr_img):
     return torch.cat((lr_img, sr_img, hr_img), dim=2)
 
 
-def setup_criterions(options):
+def setup_criterions(options, device):
     criterions = []
     for type in options.keys():
-        crit = models.create_loss(type, options.get(type))
+        crit = models.create_loss(type, options.get(type), device)
         if crit is not None:
             criterions.append(crit)
     return criterions
