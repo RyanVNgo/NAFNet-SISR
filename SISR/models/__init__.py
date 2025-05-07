@@ -7,6 +7,7 @@ from .archs.PlainNet import PlainNet
 from .archs.Baseline import Baseline
 from .archs.NAFNet import NAFNet
 from .archs.SRNAFNet import SRNAFNet, nafnet_weight_init
+from .archs.discriminator import Discriminator
 from .losses import losses
 
 import utils
@@ -25,6 +26,7 @@ __all__ = [
     'Baseline'
     'NAFNet'
     'SRNAFNet'
+    'Discriminator'
 ]
 
 
@@ -153,7 +155,7 @@ def create_loss(type, options, device):
         case 'huberloss':
             return losses.HuberLoss(weight)
         case 'vggloss':
-            return losses.VGGLoss(conv_index='54', weight=weight, device=device)
+            return losses.VGGLoss(conv_index='22', weight=weight, device=device)
     return None
 
 

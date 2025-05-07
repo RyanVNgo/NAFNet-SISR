@@ -97,6 +97,8 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
     train_iter = iter(train_loader)
     scaler = GradScaler()
 
+    discrim = models.Discriminator(iterations, device)
+
     for i in range(iterations):
         iter_start_time = time.time()
         try:
@@ -114,6 +116,14 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             loss = 0.0
             for loss_fn in criterions:
                 loss += loss_fn(pred, target)
+
+
+        d_loss = discrim.update(pred, target)
+        g_loss = discrim.adversarial_loss(pred, target)
+        loss += g_loss * 1e-3
+
+        log_writer.add_scalar('Discrim/D_Loss', d_loss.item(), i)
+        log_writer.add_scalar('Discrim/Adv_Loss', g_loss.item(), i)
 
         optimizer.zero_grad()
         scaler.scale(loss).backward()

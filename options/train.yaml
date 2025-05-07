@@ -1,5 +1,5 @@
 
-name: DSRNAFNet_V4
+name: SRNAFGAN_V1
 
 model:
   # load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
@@ -30,7 +30,7 @@ model:
 training:
   iterations: 20000
   valid_interval: 64
-  batch_size: 16
+  batch_size: 12
 
   optimizer:
     type: AdamW
@@ -46,6 +46,8 @@ training:
   losses:
     l1loss:
       weight: 1.0
+    # vggloss:
+    #   weight: 0.01
 
 datasets:
   training:
