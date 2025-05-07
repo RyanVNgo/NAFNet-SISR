@@ -70,6 +70,9 @@ def main():
     print(f'    Validation Interval: {valid_interval}')
     print(f'    Model will be saved to:\n       {model_save_path}')
 
+    model.set_model_save_path(model_save_path)
+    model.set_config_save_path(config_save_path)
+
     model = train_for_iterations(
         model, 
         dataloaders, 
@@ -168,6 +171,10 @@ def train_for_iterations(model, dataloaders, optimizer, scheduler, criterions, i
             log_writer.add_scalar('PSNR/Valid', v_psnr, i)
             log_writer.add_scalar('Loss/Valid', valid_loss, i)
             log_writer.add_image('LR_SR_HR', img_ex_grid, i)
+
+        if i % 1000 == 999:
+            model.save_model()
+            model.save_config()
 
     elapsed_time = time.time() - start_time
     print(f'\nTraining Complete')
