@@ -13,6 +13,8 @@ import utils
 import models
 import data
 
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 
 def main():
     print('')
@@ -81,6 +83,8 @@ def main():
         print(f'        PSNR: {psnr:.4f} | SSIM: {ssim:.4f}')
         psnr_list.append(psnr)
         ssim_list.append(ssim)
+        del sr_tensor
+        del lr_tensor
 
     print(f'\nAverage metrics over {len(image_paths)} images:')
     print(f'    PSNR: {sum(psnr_list) / len(psnr_list) : .4f}')

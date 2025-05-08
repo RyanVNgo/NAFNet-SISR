@@ -1,5 +1,5 @@
 
-name: SRNAFGAN_V1
+name: SRPlainNet_V1
 
 model:
   # load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
@@ -30,7 +30,7 @@ model:
 training:
   iterations: 20000
   valid_interval: 64
-  batch_size: 12
+  batch_size: 16
 
   optimizer:
     type: AdamW
