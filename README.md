@@ -31,6 +31,18 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+## Usage
+
+There are three scripts available for use: `train.py`, `eval.py`, and `demo.py`. Each
+script is found in the `SISR` directory. I suggest running the scripts with the `-h`
+command line argument to understand the needed command line arguments to control each
+script.
+
+Example usage of `demo.py` script:
+```bash
+python SISR/demo.py -m pretrained_models/model.pth -i /path/to/input.png -o /path/to/output.png
+```
+
 
 ## Citation
 
