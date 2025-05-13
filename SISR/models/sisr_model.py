@@ -60,7 +60,8 @@ class SISRModel():
                 path, 
                 weights_only=True, 
                 map_location=self.device
-            )
+            ),
+            strict=False
         )
 
     def save_model(self, path=None):

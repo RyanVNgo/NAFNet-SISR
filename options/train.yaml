@@ -1,8 +1,9 @@
 
-name: SRPlainNet_V1
+name: DSRNAFNet_V8
 
 model:
-  # load_path: ./pretrained_models/Deep-SRNAFNet_V3.pth
+  load_path: ./pretrained_models/DSRNAFNet_V4.pth
+  ignore_yaml: True
   save_path: ./pretrained_models/
   device: 'cuda'
 
@@ -28,19 +29,19 @@ model:
       kernel_size: 1
 
 training:
-  iterations: 20000
+  iterations: 10000
   valid_interval: 64
   batch_size: 16
 
   optimizer:
     type: AdamW
     weight_decay: 0.0
-    lr: !!float 1e-3
+    lr: !!float 1e-5
     betas: [0.9, 0.9]
 
   scheduler:
     type: CosineAnnealingLR
-    t_max: 20000 
+    t_max: 10000 
     eta_min: !!float 1e-7
 
   losses:

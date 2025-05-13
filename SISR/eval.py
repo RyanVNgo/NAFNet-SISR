@@ -1,6 +1,7 @@
 
 import os
 import sys
+import time
 import argparse
 
 import torch
@@ -64,6 +65,9 @@ def main():
 
     psnr_list = []
     ssim_list = []
+    times = []
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
     for idx, image_path in enumerate(image_paths):
         print(f'    Evaluating Image [{idx+1}]: {image_path}')
         hr_image = Image.open(image_path).convert('RGB')
@@ -71,8 +75,14 @@ def main():
         lr_image = downscale_image(hr_image, scaling_factor)
         
         lr_tensor = to_tensor(lr_image).unsqueeze(0).to(device)
+        start.record()
         with torch.no_grad():
             sr_tensor = model.predict(lr_tensor)
+        end.record()
+        torch.cuda.synchronize()
+
+        inference_time = start.elapsed_time(end)
+        times.append(inference_time)
 
         sr_tensor = sr_tensor.squeeze(0).clamp(0,1).detach().cpu()
         sr_tensor = (sr_tensor * 255).byte()
@@ -80,6 +90,7 @@ def main():
 
         psnr = metrics.PSNR(np.array(sr_image), np.array(hr_image), 255.0)
         ssim = metrics.SSIM(np.array(sr_image), np.array(hr_image))
+        print(f'        Inference Time: {inference_time : .4f}ms')
         print(f'        PSNR: {psnr:.4f} | SSIM: {ssim:.4f}')
         psnr_list.append(psnr)
         ssim_list.append(ssim)
@@ -87,6 +98,7 @@ def main():
         del lr_tensor
 
     print(f'\nAverage metrics over {len(image_paths)} images:')
+    print(f'    Inference Time: {sum(times[1:]) / len(times) : .4f}ms')
     print(f'    PSNR: {sum(psnr_list) / len(psnr_list) : .4f}')
     print(f'    SSIM: {sum(ssim_list) / len(ssim_list) : .4f}')
     print(f'')

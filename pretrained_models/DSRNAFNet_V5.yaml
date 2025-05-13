@@ -15,6 +15,26 @@ network_arch:
   - 5
   - 7
   type: SRNAFNet
-  ufe_count: 3
+  ufe_count: 1
   ufe_k: 3
   width: 64
+
+# --- METRICS
+# Set5
+#   PSNR: 35.7487
+#   SSIM:  0.9460
+#
+# Set14
+#   PSNR: 31.1227
+#   SSIM:  0.8956
+#
+# BSD100
+#   PSNR: 30.2392
+#   SSIM:  0.8932
+#
+# Urban100
+#   PSNR: 28.1901
+#   SSIM:  0.9063
+#
+# Urban100 Time: 109.0965 ms
+#

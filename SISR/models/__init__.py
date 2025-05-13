@@ -34,6 +34,8 @@ def create_sisr_model(options):
     network_options = options.get('network_arch', {})
     
     load_path = options.get('load_path', None)
+    ignore_yaml = options.get('ignore_yaml', False)
+
     yaml_path = None
     if load_path is not None:
         load_path = os.path.abspath(load_path)
@@ -43,7 +45,7 @@ def create_sisr_model(options):
             filename = os.path.splitext(filename)[0] + '.yaml'
             yaml_path = os.path.join(dir, filename)
 
-    if yaml_path is not None:
+    if yaml_path is not None and ignore_yaml == False:
         print('Network loaded')
         network_options = utils.parse_options(yaml_path).get('network_arch', {})
 

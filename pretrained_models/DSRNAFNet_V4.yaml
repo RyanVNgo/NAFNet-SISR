@@ -36,8 +36,6 @@ network_arch:
 #   PSNR: 28.2902
 #   SSIM:  0.9073
 #
-# DIV2K Valid
-#   PSNR: 33.6934
-#   SSIM:  0.9346
+# Urban100 Time: 134.7835 ms
 #
 
